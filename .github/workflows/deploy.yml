@@ -25,6 +25,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       # Workload Identity Federation で認証（サービスアカウントキー不要）
       - name: Authenticate to Google Cloud
