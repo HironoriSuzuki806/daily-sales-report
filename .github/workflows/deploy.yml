@@ -1,13 +1,10 @@
 name: Deploy to Cloud Run
 
 on:
-  push:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: [main]
-
-# Workload Identity Federation に必要
-permissions:
-  contents: read
-  id-token: write
 
 env:
   PROJECT_ID: daily-sales-report-498416
@@ -19,6 +16,12 @@ jobs:
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    # CI ワークフローが成功したときのみデプロイ
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Workload Identity Federation に必要（最小権限: ジョブレベル）
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
