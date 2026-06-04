@@ -43,7 +43,7 @@ jobs:
       - name: Build and push Docker image
         env:
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/app
-          TAG: ${{ github.sha }}
+          TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
           docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
           docker push "$IMAGE:$TAG"
@@ -55,7 +55,7 @@ jobs:
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/app:${{ github.sha }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/app:${{ github.event.workflow_run.head_sha }}
           flags: >-
             --allow-unauthenticated
             --port=3000
@@ -69,4 +69,4 @@ jobs:
         run: |
           echo "### :rocket: デプロイ完了" >> $GITHUB_STEP_SUMMARY
           echo "URL: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "Image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/app:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "Image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/app:${{ github.event.workflow_run.head_sha }}" >> $GITHUB_STEP_SUMMARY
