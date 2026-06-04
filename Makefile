@@ -149,7 +149,7 @@ setup-wif: ## GitHub Actions 用 Workload Identity Federation 設定（初回の
 	@echo "=== IAM ロール付与 ==="
 	gcloud projects add-iam-policy-binding $(PROJECT_ID) \
 		--member "serviceAccount:github-actions-sa@$(PROJECT_ID).iam.gserviceaccount.com" \
-		--role "roles/run.admin"
+		--role "roles/run.developer"
 	gcloud projects add-iam-policy-binding $(PROJECT_ID) \
 		--member "serviceAccount:github-actions-sa@$(PROJECT_ID).iam.gserviceaccount.com" \
 		--role "roles/artifactregistry.writer"
