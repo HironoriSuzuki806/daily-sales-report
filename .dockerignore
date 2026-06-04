@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.github
+.husky
+coverage
+.env*
+doc/
+.claude/
+*.log
