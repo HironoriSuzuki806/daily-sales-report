@@ -1,3 +1,4 @@
+// TODO: Issue #8 (SCR-001 ログイン画面) 実装後、/login へリダイレクトする
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
