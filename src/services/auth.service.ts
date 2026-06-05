@@ -48,7 +48,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     name: salesperson.name,
     email: salesperson.email,
     role: salesperson.role,
-    departmentId: (salesperson.departmentId ?? BigInt(0)).toString(),
+    departmentId: salesperson.departmentId?.toString(),
   });
 
   return {

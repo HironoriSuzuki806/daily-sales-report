@@ -8,7 +8,7 @@ export type JwtPayload = {
   name: string;
   email: string;
   role: Role;
-  departmentId: string; // string representation of BigInt
+  departmentId?: string; // undefined when user has no department (e.g. ADMIN)
 };
 
 const JwtPayloadSchema = z.object({
@@ -16,14 +16,17 @@ const JwtPayloadSchema = z.object({
   name: z.string(),
   email: z.string(),
   role: z.enum(['SALES', 'MANAGER', 'ADMIN']),
-  departmentId: z.string(),
+  departmentId: z.string().optional(),
 });
 
-/**
- * In-memory token blacklist for logout.
- * In production this should be replaced with Redis or a database.
- */
+// TODO: Replace with Redis or DB-backed store before production deployment.
+// Cloud Run restarts on deploy/cold-start, causing logged-out tokens to become
+// valid again. Track in Issue for blacklist persistence implementation.
 const tokenBlacklist = new Set<string>();
+
+// TODO: Add TTL-based cleanup to prevent unbounded memory growth.
+// Currently expired tokens accumulate indefinitely. Consider recording expiry
+// timestamps at blacklist time and purging on a periodic interval.
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -62,10 +65,11 @@ export function isTokenBlacklisted(token: string): boolean {
   return tokenBlacklist.has(token);
 }
 
-/**
- * Extracts the Bearer token from the Authorization header.
- * Returns null if the header is missing or malformed.
- */
+/** For use in tests only — clears the in-memory blacklist between test cases. */
+export function clearBlacklist(): void {
+  tokenBlacklist.clear();
+}
+
 export function extractBearerToken(authHeader: string | null): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
@@ -73,10 +77,6 @@ export function extractBearerToken(authHeader: string | null): string | null {
   return authHeader.slice(7);
 }
 
-/**
- * Verifies the JWT from a Request's Authorization header.
- * Throws an error if the token is missing, blacklisted, or invalid.
- */
 export async function verifyRequestToken(request: Request): Promise<JwtPayload> {
   const authHeader = request.headers.get('Authorization');
   const token = extractBearerToken(authHeader);

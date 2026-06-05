@@ -17,5 +17,5 @@ export {
   badRequest,
 } from './handler';
 
-export { getCurrentUser, requireAuth, extractBearerToken, extractBearerTokenFromCookies } from './auth';
+export { getCurrentUser, requireAuth, extractBearerToken } from './auth';
 export type { AuthUser } from './auth';

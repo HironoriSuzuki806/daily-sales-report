@@ -5,6 +5,7 @@ import {
   signToken,
   verifyToken,
   blacklistToken,
+  clearBlacklist,
   isTokenBlacklisted,
   extractBearerToken,
   verifyRequestToken,
@@ -75,8 +76,7 @@ describe('signToken / verifyToken', () => {
 
 describe('トークンブラックリスト', () => {
   beforeEach(() => {
-    // 各テスト前にブラックリストの状態をリセットするため
-    // 別のトークンを使用してテストを独立させる
+    clearBlacklist();
   });
 
   it('ブラックリストに追加されていないトークンは無効でない', async () => {
@@ -104,6 +104,10 @@ describe('トークンブラックリスト', () => {
 });
 
 describe('verifyRequestToken', () => {
+  beforeEach(() => {
+    clearBlacklist();
+  });
+
   it('有効なトークンを持つリクエストは検証に成功する', async () => {
     const token = await signToken({
       sub: '12',

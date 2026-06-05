@@ -1,7 +1,8 @@
-import type { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { createErrorResponse } from '@/lib/api';
+import { ApiError, withErrorHandler } from '@/lib/api';
+import { HttpStatus } from '@/lib/api/http-status';
 import { AuthError } from '@/lib/auth';
 import { login } from '@/services/auth.service';
 
@@ -17,35 +18,16 @@ const LoginSchema = z.object({
     .max(72, 'パスワードは72文字以内で入力してください'),
 });
 
-const PATH = '/api/v1/auth/login';
-
-export async function POST(request: NextRequest) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return createErrorResponse(400, 'リクエストボディが不正です', PATH);
-  }
-
-  const parsed = LoginSchema.safeParse(body);
-  if (!parsed.success) {
-    const fieldErrors = parsed.error.issues.map((e) => ({
-      field: e.path.join('.'),
-      message: e.message,
-    }));
-    return createErrorResponse(400, '入力値に誤りがあります', PATH, fieldErrors);
-  }
-
-  const { email, password } = parsed.data;
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const body = LoginSchema.parse(await request.json());
 
   try {
-    const result = await login(email, password);
-    return Response.json(result, { status: 200 });
+    const result = await login(body.email, body.password);
+    return NextResponse.json(result);
   } catch (err) {
     if (err instanceof AuthError) {
-      return createErrorResponse(401, err.message, PATH);
+      throw new ApiError(HttpStatus.UNAUTHORIZED, err.message);
     }
-    console.error('[POST /api/v1/auth/login]', err);
-    return createErrorResponse(500, 'サーバーエラーが発生しました', PATH);
+    throw err;
   }
-}
+});

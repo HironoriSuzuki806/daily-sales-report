@@ -1,20 +1,18 @@
-import type { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-import { createErrorResponse } from '@/lib/api';
+import { ApiError, withErrorHandler } from '@/lib/api';
+import { HttpStatus } from '@/lib/api/http-status';
 import { AuthError } from '@/lib/auth';
 import { getMe } from '@/services/auth.service';
 
-const PATH = '/api/v1/me';
-
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandler(async (request: NextRequest) => {
   try {
     const result = await getMe(request);
-    return Response.json(result, { status: 200 });
+    return NextResponse.json(result);
   } catch (err) {
     if (err instanceof AuthError) {
-      return createErrorResponse(401, err.message, PATH);
+      throw new ApiError(HttpStatus.UNAUTHORIZED, err.message);
     }
-    console.error('[GET /api/v1/me]', err);
-    return createErrorResponse(500, 'サーバーエラーが発生しました', PATH);
+    throw err;
   }
-}
+});

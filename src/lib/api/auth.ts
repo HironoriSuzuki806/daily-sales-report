@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { ApiError } from './handler';
 import { HttpStatus } from './http-status';
@@ -9,16 +8,11 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'SALES' | 'MANAGER' | 'ADMIN';
-  departmentId: number;
+  departmentId: number | null;
 }
 
 export function extractBearerToken(request: NextRequest): string | null {
   return extractBearer(request.headers.get('Authorization'));
-}
-
-export async function extractBearerTokenFromCookies(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('access_token')?.value ?? null;
 }
 
 export async function getCurrentUser(request: NextRequest): Promise<AuthUser | null> {
@@ -29,7 +23,7 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
       name: payload.name,
       email: payload.email,
       role: payload.role as AuthUser['role'],
-      departmentId: Number(payload.departmentId),
+      departmentId: payload.departmentId ? Number(payload.departmentId) : null,
     };
   } catch {
     return null;
@@ -44,7 +38,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthUser> {
       name: payload.name,
       email: payload.email,
       role: payload.role as AuthUser['role'],
-      departmentId: Number(payload.departmentId),
+      departmentId: payload.departmentId ? Number(payload.departmentId) : null,
     };
   } catch (err) {
     if (err instanceof AuthError) {
