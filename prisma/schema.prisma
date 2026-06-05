@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SALES
+  MANAGER
+  ADMIN
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+// DEPARTMENT.managerId ↔ SALESPERSON.departmentId が相互参照になるため
+// 両カラムを nullable にし、登録順序（部署→営業→部署長更新）で解決する
+model Department {
+  id                 BigInt       @id @default(autoincrement())
+  name               String       @db.VarChar(100)
+  parentDepartmentId BigInt?
+  managerId          BigInt?
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  parentDepartment Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments Department[] @relation("DepartmentHierarchy")
+  manager          Salesperson? @relation("DepartmentManager", fields: [managerId], references: [id])
+  salespersons     Salesperson[] @relation("DepartmentMembers")
+
+  @@index([parentDepartmentId])
+  @@index([managerId])
+  @@map("departments")
+}
+
+model Salesperson {
+  id           BigInt    @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(255)
+  role         Role
+  departmentId BigInt?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department         Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  managedDepartments Department[] @relation("DepartmentManager")
+  customers          Customer[]
+  dailyReports       DailyReport[]
+  comments           Comment[]
+
+  @@index([departmentId])
+  @@map("salespersons")
+}
+
+model Customer {
+  id         BigInt    @id @default(autoincrement())
+  name       String    @db.VarChar(100)
+  address    String?   @db.VarChar(255)
+  phone      String?   @db.VarChar(20)
+  salesRepId BigInt?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  salesRep     Salesperson?  @relation(fields: [salesRepId], references: [id])
+  visitRecords VisitRecord[]
+
+  @@index([salesRepId])
+  @@map("customers")
+}
+
+model DailyReport {
+  id            BigInt       @id @default(autoincrement())
+  salespersonId BigInt
+  reportDate    DateTime     @db.Date
+  problem       String?      @db.Text
+  plan          String?      @db.Text
+  status        ReportStatus @default(DRAFT)
+  submittedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  salesperson  Salesperson   @relation(fields: [salespersonId], references: [id])
+  visitRecords VisitRecord[]
+  comments     Comment[]
+
+  @@unique([salespersonId, reportDate])
+  @@index([salespersonId])
+  @@index([reportDate])
+  @@index([status])
+  @@map("daily_reports")
+}
+
+model VisitRecord {
+  id            BigInt   @id @default(autoincrement())
+  dailyReportId BigInt
+  customerId    BigInt?
+  visitContent  String?  @db.Text
+  visitTime     String?  @db.VarChar(5)
+  sortOrder     Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dailyReport DailyReport  @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+
+  @@index([dailyReportId])
+  @@index([customerId])
+  @@map("visit_records")
+}
+
+model Comment {
+  id            BigInt   @id @default(autoincrement())
+  dailyReportId BigInt
+  commenterId   BigInt
+  content       String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dailyReport DailyReport @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
+  commenter   Salesperson @relation(fields: [commenterId], references: [id])
+
+  @@index([dailyReportId])
+  @@index([commenterId])
+  @@map("comments")
+}
