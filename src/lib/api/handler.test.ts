@@ -55,24 +55,28 @@ describe('helper throw functions', () => {
   });
 
   it('forbidden は 403 をスローする', () => {
+    expect(() => forbidden()).toThrow(ApiError);
     try { forbidden(); } catch (e) {
       expect((e as ApiError).status).toBe(HttpStatus.FORBIDDEN);
     }
   });
 
   it('unauthorized は 401 をスローする', () => {
+    expect(() => unauthorized()).toThrow(ApiError);
     try { unauthorized(); } catch (e) {
       expect((e as ApiError).status).toBe(HttpStatus.UNAUTHORIZED);
     }
   });
 
   it('conflict は 409 をスローする', () => {
+    expect(() => conflict('重複')).toThrow(ApiError);
     try { conflict('重複'); } catch (e) {
       expect((e as ApiError).status).toBe(HttpStatus.CONFLICT);
     }
   });
 
   it('badRequest は 400 をスローする', () => {
+    expect(() => badRequest('不正')).toThrow(ApiError);
     try { badRequest('不正'); } catch (e) {
       expect((e as ApiError).status).toBe(HttpStatus.BAD_REQUEST);
     }

@@ -4,10 +4,6 @@ import { createErrorResponse, zodErrorToFieldErrors } from './errors';
 import { HttpStatus } from './http-status';
 
 type RouteContext = { params: Promise<Record<string, string>> };
-type Handler<C = void> = (
-  request: NextRequest,
-  context: C extends void ? undefined : C,
-) => Promise<NextResponse>;
 
 export class ApiError extends Error {
   constructor(

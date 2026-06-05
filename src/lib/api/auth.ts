@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { ApiError } from './handler';
+import { HttpStatus } from './http-status';
 
 export interface AuthUser {
   id: number;
@@ -31,4 +33,14 @@ export async function extractBearerTokenFromCookies(): Promise<string | null> {
 export async function getCurrentUser(_request: NextRequest): Promise<AuthUser | null> {
   // TODO: JWT 検証・DB 照合を実装する（Issue #5）
   return null;
+}
+
+/**
+ * 認証済みユーザーを返す。未認証の場合は 401 をスローする。
+ * Route Handler では getCurrentUser の代わりにこちらを使うことで認証チェック漏れを防ぐ。
+ */
+export async function requireAuth(request: NextRequest): Promise<AuthUser> {
+  const user = await getCurrentUser(request);
+  if (!user) throw new ApiError(HttpStatus.UNAUTHORIZED, '認証が必要です');
+  return user;
 }
