@@ -66,7 +66,6 @@ describe('POST /api/v1/auth/login', () => {
 
   it('400: リクエストボディなしは Zod エラー', async () => {
     const res = await POST(makeRequest({}));
-    const body = await res.json();
 
     expect(res.status).toBe(400);
   });
