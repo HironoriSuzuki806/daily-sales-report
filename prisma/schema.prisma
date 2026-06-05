@@ -108,15 +108,15 @@ model DailyReport {
 model VisitRecord {
   id            BigInt   @id @default(autoincrement())
   dailyReportId BigInt
-  customerId    BigInt
-  visitContent  String   @db.Text
+  customerId    BigInt?
+  visitContent  String?  @db.Text
   visitTime     String?  @db.VarChar(5)
   sortOrder     Int
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  dailyReport DailyReport @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
-  customer    Customer    @relation(fields: [customerId], references: [id])
+  dailyReport DailyReport  @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
+  customer    Customer?    @relation(fields: [customerId], references: [id])
 
   @@index([dailyReportId])
   @@index([customerId])

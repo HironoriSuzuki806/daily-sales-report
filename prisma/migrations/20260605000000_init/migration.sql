@@ -67,8 +67,8 @@ CREATE TABLE "daily_reports" (
 CREATE TABLE "visit_records" (
     "id" BIGSERIAL NOT NULL,
     "dailyReportId" BIGINT NOT NULL,
-    "customerId" BIGINT NOT NULL,
-    "visitContent" TEXT NOT NULL,
+    "customerId" BIGINT,
+    "visitContent" TEXT,
     "visitTime" VARCHAR(5),
     "sortOrder" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

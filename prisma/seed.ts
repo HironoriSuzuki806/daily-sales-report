@@ -144,6 +144,10 @@ async function main() {
     },
   });
 
+  // BIGSERIAL シーケンスを最大 ID に合わせてリセット（明示 ID 挿入後の自動採番衝突を防ぐ）
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('departments', 'id'), (SELECT MAX(id) FROM departments))`;
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('customers', 'id'), (SELECT MAX(id) FROM customers))`;
+
   console.log('Seed data created:', {
     departments: [managementDept.name, salesHQ.name, eastSalesDept.name, westSalesDept.name],
     salespersons: [adminUser.name, mgrA.name, salesA.name, salesB.name],
