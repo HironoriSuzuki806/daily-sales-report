@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
 
@@ -6,6 +7,7 @@ const adapter = new PrismaPg(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  const defaultPasswordHash = bcrypt.hashSync('password', 10);
   // 部署（manager は後から設定するため先に作成）
   const managementDept = await prisma.department.upsert({
     where: { id: BigInt(1) },
@@ -56,6 +58,7 @@ async function main() {
     create: {
       name: '管理者',
       email: 'admin@example.com',
+      passwordHash: defaultPasswordHash,
       role: Role.ADMIN,
       departmentId: managementDept.id,
       isActive: true,
@@ -68,6 +71,7 @@ async function main() {
     create: {
       name: '佐藤部長',
       email: 'mgr_a@example.com',
+      passwordHash: defaultPasswordHash,
       role: Role.MANAGER,
       departmentId: eastSalesDept.id,
       isActive: true,
@@ -80,6 +84,7 @@ async function main() {
     create: {
       name: '山田太郎',
       email: 'sales_a@example.com',
+      passwordHash: defaultPasswordHash,
       role: Role.SALES,
       departmentId: eastSalesDept.id,
       isActive: true,
@@ -92,6 +97,7 @@ async function main() {
     create: {
       name: '鈴木花子',
       email: 'sales_b@example.com',
+      passwordHash: defaultPasswordHash,
       role: Role.SALES,
       departmentId: westSalesDept.id,
       isActive: true,
