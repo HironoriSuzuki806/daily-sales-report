@@ -18,14 +18,6 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-// auth モジュールのブラックリスト関数をモック
-vi.mock('@/lib/auth', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/auth')>();
-  return {
-    ...actual,
-  };
-});
-
 import { prisma } from '@/lib/prisma';
 
 const mockPrisma = prisma as unknown as {
@@ -125,7 +117,9 @@ describe('logout', () => {
     const token = await signToken({
       sub: '12',
       name: '山田太郎',
+      email: 'yamada@example.com',
       role: 'SALES' as const,
+      departmentId: '3',
     });
 
     const request = new Request('http://localhost/api/v1/auth/logout', {
@@ -176,7 +170,9 @@ describe('getMe', () => {
     const token = await signToken({
       sub: '42',
       name: '山田太郎',
+      email: 'yamada@example.com',
       role: 'SALES' as const,
+      departmentId: '3',
     });
 
     mockPrisma.salesperson.findUnique.mockResolvedValue(mockSalesperson);
@@ -209,7 +205,9 @@ describe('getMe', () => {
     const token = await signToken({
       sub: '999',
       name: 'ゴースト',
+      email: 'ghost@example.com',
       role: 'SALES' as const,
+      departmentId: '0',
     });
 
     mockPrisma.salesperson.findUnique.mockResolvedValue(null);
@@ -226,7 +224,9 @@ describe('getMe', () => {
     const token = await signToken({
       sub: '13',
       name: '田中一郎',
+      email: 'tanaka@example.com',
       role: 'ADMIN' as const,
+      departmentId: '0',
     });
 
     mockPrisma.salesperson.findUnique.mockResolvedValue({

@@ -39,7 +39,9 @@ describe('signToken / verifyToken', () => {
     const payload = {
       sub: '12',
       name: '山田太郎',
+      email: 'yamada@example.com',
       role: 'SALES' as const,
+      departmentId: '3',
     };
 
     const token = await signToken(payload);
@@ -49,7 +51,9 @@ describe('signToken / verifyToken', () => {
     const verified = await verifyToken(token);
     expect(verified.sub).toBe('12');
     expect(verified.name).toBe('山田太郎');
+    expect(verified.email).toBe('yamada@example.com');
     expect(verified.role).toBe('SALES');
+    expect(verified.departmentId).toBe('3');
   });
 
   it('不正なトークンは検証に失敗する', async () => {
@@ -60,7 +64,9 @@ describe('signToken / verifyToken', () => {
     const token = await signToken({
       sub: '12',
       name: '山田太郎',
+      email: 'yamada@example.com',
       role: 'SALES' as const,
+      departmentId: '3',
     });
     const tampered = token.slice(0, -5) + 'xxxxx';
     await expect(verifyToken(tampered)).rejects.toThrow();
@@ -77,7 +83,9 @@ describe('トークンブラックリスト', () => {
     const token = await signToken({
       sub: '99',
       name: 'テスト',
+      email: 'test@example.com',
       role: 'SALES' as const,
+      departmentId: '1',
     });
     expect(isTokenBlacklisted(token)).toBe(false);
   });
@@ -86,7 +94,9 @@ describe('トークンブラックリスト', () => {
     const token = await signToken({
       sub: '100',
       name: 'テスト2',
+      email: 'test2@example.com',
       role: 'SALES' as const,
+      departmentId: '1',
     });
     blacklistToken(token);
     expect(isTokenBlacklisted(token)).toBe(true);
@@ -98,7 +108,9 @@ describe('verifyRequestToken', () => {
     const token = await signToken({
       sub: '12',
       name: '山田太郎',
+      email: 'yamada@example.com',
       role: 'SALES' as const,
+      departmentId: '3',
     });
 
     const request = new Request('http://localhost/api/test', {
@@ -118,7 +130,9 @@ describe('verifyRequestToken', () => {
     const token = await signToken({
       sub: '200',
       name: 'ブラックリスト',
+      email: 'blacklist@example.com',
       role: 'SALES' as const,
+      departmentId: '1',
     });
     blacklistToken(token);
 

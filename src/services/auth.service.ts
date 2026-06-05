@@ -32,7 +32,6 @@ export type MeResult = {
 export async function login(email: string, password: string): Promise<LoginResult> {
   const salesperson = await prisma.salesperson.findUnique({
     where: { email },
-    include: { department: true },
   });
 
   if (!salesperson || !salesperson.isActive) {
@@ -47,7 +46,9 @@ export async function login(email: string, password: string): Promise<LoginResul
   const accessToken = await signToken({
     sub: salesperson.id.toString(),
     name: salesperson.name,
+    email: salesperson.email,
     role: salesperson.role,
+    departmentId: (salesperson.departmentId ?? BigInt(0)).toString(),
   });
 
   return {

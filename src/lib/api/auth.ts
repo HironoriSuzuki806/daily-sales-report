@@ -27,9 +27,9 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
     return {
       id: Number(payload.sub),
       name: payload.name,
-      email: '',
+      email: payload.email,
       role: payload.role as AuthUser['role'],
-      departmentId: 0,
+      departmentId: Number(payload.departmentId),
     };
   } catch {
     return null;
@@ -42,9 +42,9 @@ export async function requireAuth(request: NextRequest): Promise<AuthUser> {
     return {
       id: Number(payload.sub),
       name: payload.name,
-      email: '',
+      email: payload.email,
       role: payload.role as AuthUser['role'],
-      departmentId: 0,
+      departmentId: Number(payload.departmentId),
     };
   } catch (err) {
     if (err instanceof AuthError) {

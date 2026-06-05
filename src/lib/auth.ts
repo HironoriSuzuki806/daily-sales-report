@@ -1,12 +1,23 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { z } from 'zod';
 
 import type { Role } from '@/generated/prisma/enums';
 
 export type JwtPayload = {
   sub: string; // salesperson id (string representation of BigInt)
   name: string;
+  email: string;
   role: Role;
+  departmentId: string; // string representation of BigInt
 };
+
+const JwtPayloadSchema = z.object({
+  sub: z.string(),
+  name: z.string(),
+  email: z.string(),
+  role: z.enum(['SALES', 'MANAGER', 'ADMIN']),
+  departmentId: z.string(),
+});
 
 /**
  * In-memory token blacklist for logout.
@@ -40,7 +51,7 @@ export async function signToken(payload: JwtPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<JwtPayload> {
   const secret = getJwtSecret();
   const { payload } = await jwtVerify(token, secret);
-  return payload as unknown as JwtPayload;
+  return JwtPayloadSchema.parse(payload) as JwtPayload;
 }
 
 export function blacklistToken(token: string): void {
