@@ -50,6 +50,7 @@ model Salesperson {
   id           BigInt    @id @default(autoincrement())
   name         String    @db.VarChar(100)
   email        String    @unique @db.VarChar(255)
+  passwordHash String    @db.VarChar(255)
   role         Role
   departmentId BigInt?
   isActive     Boolean   @default(true)
