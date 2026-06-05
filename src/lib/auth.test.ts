@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { SignJWT } from 'jose';
+
 import {
   signToken,
   verifyToken,
@@ -59,6 +61,37 @@ describe('signToken / verifyToken', () => {
 
   it('不正なトークンは検証に失敗する', async () => {
     await expect(verifyToken('invalid.token.here')).rejects.toThrow();
+  });
+
+  it('未定義の role を持つペイロードは Zod 検証で失敗する', async () => {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    const token = await new SignJWT({
+      sub: '1',
+      name: 'テスト',
+      email: 'test@example.com',
+      role: 'SUPERADMIN', // 無効な role
+      departmentId: '1',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secret);
+
+    await expect(verifyToken(token)).rejects.toThrow();
+  });
+
+  it('必須フィールドが欠落したペイロードは Zod 検証で失敗する', async () => {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    const token = await new SignJWT({
+      sub: '1',
+      // name, email, role が欠落
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(secret);
+
+    await expect(verifyToken(token)).rejects.toThrow();
   });
 
   it('改ざんされたトークンは検証に失敗する', async () => {
