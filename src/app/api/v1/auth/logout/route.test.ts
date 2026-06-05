@@ -8,6 +8,14 @@ vi.mock('@/services/auth.service', () => ({
   logout: vi.fn(),
 }));
 
+// `clearSessionCookie` calls `next/headers` cookies(), which is unavailable
+// outside a real Next.js request context. Mock the entire session module.
+vi.mock('@/lib/session', () => ({
+  clearSessionCookie: vi.fn().mockResolvedValue(undefined),
+  setSessionCookie: vi.fn().mockResolvedValue(undefined),
+  getSessionUser: vi.fn().mockResolvedValue(null),
+}));
+
 import { logout } from '@/services/auth.service';
 const mockLogout = logout as ReturnType<typeof vi.fn>;
 
