@@ -58,7 +58,7 @@ describe('login', () => {
       tokenType: 'Bearer',
       expiresIn: 3600,
       user: {
-        id: '12',
+        id: 12,
         name: '山田太郎',
         role: 'SALES',
       },
@@ -184,11 +184,11 @@ describe('getMe', () => {
     const result = await getMe(request);
 
     expect(result).toEqual({
-      id: '12',
+      id: 12,
       name: '山田太郎',
       email: 'yamada@example.com',
       role: 'SALES',
-      department: { id: '3', name: '東日本営業部' },
+      department: { id: 3, name: '東日本営業部' },
     });
   });
 

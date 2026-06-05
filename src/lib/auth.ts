@@ -54,7 +54,7 @@ export async function signToken(payload: JwtPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<JwtPayload> {
   const secret = getJwtSecret();
   const { payload } = await jwtVerify(token, secret);
-  return JwtPayloadSchema.parse(payload) as JwtPayload;
+  return JwtPayloadSchema.parse(payload);
 }
 
 export function blacklistToken(token: string): void {

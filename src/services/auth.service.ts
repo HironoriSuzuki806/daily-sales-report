@@ -15,18 +15,18 @@ export type LoginResult = {
   tokenType: 'Bearer';
   expiresIn: number;
   user: {
-    id: string;
+    id: number;
     name: string;
     role: string;
   };
 };
 
 export type MeResult = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: string;
-  department: { id: string; name: string } | null;
+  department: { id: number; name: string } | null;
 };
 
 export async function login(email: string, password: string): Promise<LoginResult> {
@@ -56,7 +56,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     tokenType: 'Bearer',
     expiresIn: getExpiresIn(),
     user: {
-      id: salesperson.id.toString(),
+      id: Number(salesperson.id),
       name: salesperson.name,
       role: salesperson.role,
     },
@@ -84,13 +84,13 @@ export async function getMe(request: Request): Promise<MeResult> {
   }
 
   return {
-    id: salesperson.id.toString(),
+    id: Number(salesperson.id),
     name: salesperson.name,
     email: salesperson.email,
     role: salesperson.role,
     department: salesperson.department
       ? {
-          id: salesperson.department.id.toString(),
+          id: Number(salesperson.department.id),
           name: salesperson.department.name,
         }
       : null,
