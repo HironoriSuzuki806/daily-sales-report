@@ -15,7 +15,25 @@ export function extractBearerToken(request: NextRequest): string | null {
   return extractBearer(request.headers.get('Authorization'));
 }
 
+function userFromProxyHeaders(request: NextRequest): AuthUser | null {
+  const id = request.headers.get('x-user-id');
+  const role = request.headers.get('x-user-role');
+  if (!id || !role) return null;
+  return {
+    id: Number(id),
+    name: decodeURIComponent(request.headers.get('x-user-name') ?? ''),
+    email: request.headers.get('x-user-email') ?? '',
+    role: role as AuthUser['role'],
+    departmentId: request.headers.get('x-user-department-id')
+      ? Number(request.headers.get('x-user-department-id'))
+      : null,
+  };
+}
+
 export async function getCurrentUser(request: NextRequest): Promise<AuthUser | null> {
+  const fromHeaders = userFromProxyHeaders(request);
+  if (fromHeaders) return fromHeaders;
+
   try {
     const payload = await verifyRequestToken(request);
     return {
@@ -31,6 +49,9 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
 }
 
 export async function requireAuth(request: NextRequest): Promise<AuthUser> {
+  const fromHeaders = userFromProxyHeaders(request);
+  if (fromHeaders) return fromHeaders;
+
   try {
     const payload = await verifyRequestToken(request);
     return {
