@@ -9,7 +9,7 @@
 
 import { cookies } from 'next/headers';
 
-import { verifyToken, type JwtPayload } from '@/lib/auth';
+import { isTokenBlacklisted, verifyToken, type JwtPayload } from '@/lib/auth';
 
 export const ACCESS_TOKEN_COOKIE = 'access_token';
 
@@ -48,6 +48,7 @@ export async function getSessionUser(): Promise<JwtPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   if (!token) return null;
+  if (isTokenBlacklisted(token)) return null;
 
   try {
     return await verifyToken(token);

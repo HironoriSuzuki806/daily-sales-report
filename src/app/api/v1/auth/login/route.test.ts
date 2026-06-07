@@ -17,7 +17,9 @@ vi.mock('@/lib/session', () => ({
 }));
 
 import { login } from '@/services/auth.service';
+import { setSessionCookie } from '@/lib/session';
 const mockLogin = login as ReturnType<typeof vi.fn>;
+const mockSetSessionCookie = setSessionCookie as ReturnType<typeof vi.fn>;
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost/api/v1/auth/login', {
@@ -45,6 +47,9 @@ describe('POST /api/v1/auth/login', () => {
     expect(res.status).toBe(200);
     expect(body.accessToken).toBe('jwt-token');
     expect(body.user.id).toBe(12);
+    // Cookie にトークンが正しくセットされることを検証
+    expect(mockSetSessionCookie).toHaveBeenCalledOnce();
+    expect(mockSetSessionCookie).toHaveBeenCalledWith('jwt-token');
   });
 
   it('400: メールアドレス未入力は Zod エラー', async () => {

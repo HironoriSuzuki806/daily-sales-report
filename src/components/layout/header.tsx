@@ -22,6 +22,9 @@ export function Header({ user }: HeaderProps) {
     } finally {
       // Regardless of API result, clear local state and redirect.
       // The server cookie is cleared by the logout API route.
+      // router.refresh() invalidates the App Router client-side cache so
+      // stale Server Component data is not served after logout.
+      router.refresh();
       router.push('/login');
     }
   }
@@ -33,12 +36,7 @@ export function Header({ user }: HeaderProps) {
       </span>
 
       <div className="flex items-center gap-3">
-        <span
-          className="text-muted-foreground hidden text-sm md:block"
-          aria-label="ログインユーザー名"
-        >
-          {user.name}
-        </span>
+        <span className="text-muted-foreground hidden text-sm md:block">{user.name}</span>
         <Button
           variant="ghost"
           size="sm"
