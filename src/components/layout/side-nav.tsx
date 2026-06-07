@@ -82,7 +82,7 @@ export function SideNav({ role }: SideNavProps) {
                 )}
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
-                <span className="hidden truncate md:block">{item.label}</span>
+                <span className="sr-only truncate md:not-sr-only">{item.label}</span>
               </Link>
             </li>
           );
