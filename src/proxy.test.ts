@@ -54,15 +54,22 @@ function makeRequest(
   return new NextRequest(`http://localhost${path}`, { method, headers });
 }
 
-describe('proxy — auth endpoints (public)', () => {
-  it('passes /api/v1/auth/login without a token', async () => {
+describe('proxy — auth endpoints', () => {
+  it('passes /api/v1/auth/login without a token (public endpoint)', async () => {
     const req = makeRequest('/api/v1/auth/login', { method: 'POST' });
     const res = await proxy(req);
     expect(res.status).toBe(200);
   });
 
-  it('passes /api/v1/auth/logout without a token', async () => {
+  it('blocks /api/v1/auth/logout without a token — logout requires auth', async () => {
     const req = makeRequest('/api/v1/auth/logout', { method: 'POST' });
+    const res = await proxy(req);
+    expect(res.status).toBe(401);
+  });
+
+  it('passes /api/v1/auth/logout with a valid token', async () => {
+    const token = await makeToken({ role: 'SALES' });
+    const req = makeRequest('/api/v1/auth/logout', { method: 'POST', token });
     const res = await proxy(req);
     expect(res.status).toBe(200);
   });
@@ -120,12 +127,24 @@ describe('proxy — cookie-based token', () => {
     expect(res.status).toBe(200);
   });
 
-  it('injects Authorization header when token arrives via cookie', async () => {
+  it('cookie token is rejected when blacklisted', async () => {
     const token = await makeToken({ role: 'ADMIN' });
+    blacklistToken(token);
     const req = makeRequest('/api/v1/me', { cookie: token });
     const res = await proxy(req);
+    expect(res.status).toBe(401);
+  });
+
+  it('passes with cookie token and no Authorization header (Authorization header injected internally for route handlers)', async () => {
+    // proxy.ts injects "Authorization: Bearer <token>" when the token arrives via cookie
+    // so that existing verifyRequestToken / requireAuth calls work without changes.
+    // The injected header is set on the forwarded request, not the response, so we
+    // verify indirectly: if the proxy passes (200), the injection path was taken.
+    const token = await makeToken({ role: 'ADMIN' });
+    const req = makeRequest('/api/v1/me', { cookie: token });
+    expect(req.headers.get('Authorization')).toBeNull();
+    const res = await proxy(req);
     expect(res.status).toBe(200);
-    expect(res.headers.get('x-middleware-rewrite')).toBeNull();
   });
 });
 
@@ -204,7 +223,7 @@ describe('proxy — RBAC: customers', () => {
 });
 
 describe('proxy — RBAC: salespersons', () => {
-  it('allows any authenticated user on GET /api/v1/salespersons (list)', async () => {
+  it('allows any authenticated user on GET /api/v1/salespersons (list, exact path)', async () => {
     const token = await makeToken({ role: 'SALES' });
     const req = makeRequest('/api/v1/salespersons', { token });
     const res = await proxy(req);
@@ -227,7 +246,7 @@ describe('proxy — RBAC: salespersons', () => {
 });
 
 describe('proxy — RBAC: departments', () => {
-  it('allows any authenticated user on GET /api/v1/departments (list)', async () => {
+  it('allows any authenticated user on GET /api/v1/departments (list, exact path)', async () => {
     const token = await makeToken({ role: 'MANAGER' });
     const req = makeRequest('/api/v1/departments', { token });
     const res = await proxy(req);

@@ -1,7 +1,13 @@
+// proxy.ts is the Next.js 16 successor to middleware.ts.
+// Next.js detects this file at src/proxy.ts and invokes the `proxy` export.
+// Running in Node.js runtime lets us access the same in-memory token blacklist
+// that route handlers use, so logged-out tokens are rejected here too.
+export const runtime = 'nodejs';
+
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isTokenBlacklisted } from '@/lib/auth';
+import { getJwtSecret, isTokenBlacklisted } from '@/lib/auth';
 
 const ACCESS_TOKEN_COOKIE = 'access_token';
 
@@ -15,12 +21,6 @@ interface MiddlewareUser {
   departmentId?: string;
 }
 
-function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('JWT_SECRET environment variable is not set');
-  return new TextEncoder().encode(secret);
-}
-
 function extractToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
@@ -32,6 +32,7 @@ function extractToken(request: NextRequest): string | null {
 function errorJson(status: 401 | 403, message: string, pathname: string): NextResponse {
   return NextResponse.json(
     {
+      // Omit milliseconds and Z to match the YYYY-MM-DDTHH:mm:ss format in the API spec §2.4.
       timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, ''),
       status,
       error: status === 401 ? 'Unauthorized' : 'Forbidden',
@@ -46,13 +47,13 @@ function errorJson(status: 401 | 403, message: string, pathname: string): NextRe
  * Returns true when the given role is allowed to access the route.
  *
  * Route requirements (from API spec §2.6):
- *   /api/v1/auth/*            — public (handled before this function)
+ *   /api/v1/auth/login        — public (handled before this function)
  *   /api/v1/daily-reports/*   — SALES or MANAGER
  *   /api/v1/customers/*       — GET: any authenticated; POST/PUT/DELETE: ADMIN
- *   /api/v1/salespersons      — GET (list): any authenticated; all others: ADMIN
- *   /api/v1/salespersons/*    — ADMIN
- *   /api/v1/departments       — GET (list): any authenticated; all others: ADMIN
- *   /api/v1/departments/*     — ADMIN
+ *   /api/v1/salespersons      — GET (list only, exact path): any authenticated; all others: ADMIN
+ *   /api/v1/salespersons/{id} — ADMIN
+ *   /api/v1/departments       — GET (list only, exact path): any authenticated; all others: ADMIN
+ *   /api/v1/departments/{id}  — ADMIN
  *   everything else           — any authenticated user
  */
 function checkRbac(pathname: string, method: string, role: Role): boolean {
@@ -88,8 +89,8 @@ const USER_HEADER_KEYS = [
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Auth endpoints are public — let them through without verification.
-  if (pathname.startsWith('/api/v1/auth/')) {
+  // Only the login endpoint is public; all other routes (including logout) require auth.
+  if (pathname === '/api/v1/auth/login') {
     return NextResponse.next();
   }
 
@@ -131,14 +132,15 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   // Build forwarded headers:
   //   1. Strip any incoming x-user-* headers to prevent spoofing.
-  //   2. Set verified user fields so route handlers can trust them.
-  //   3. If the token arrived via cookie (no Authorization header), inject it as
-  //      a Bearer token so existing verifyRequestToken / requireAuth calls work.
+  //   2. Set verified user fields so route handlers can trust them without re-verifying the JWT.
+  //   3. If the token arrived via cookie (no Authorization header), inject it as a Bearer token
+  //      so existing verifyRequestToken / requireAuth calls in route handlers work unchanged.
   const requestHeaders = new Headers(request.headers);
   for (const key of USER_HEADER_KEYS) {
     requestHeaders.delete(key);
   }
   requestHeaders.set('x-user-id', user.sub);
+  // URI-encode the name to safely transmit non-ASCII characters in HTTP headers.
   requestHeaders.set('x-user-name', encodeURIComponent(user.name));
   requestHeaders.set('x-user-email', user.email);
   requestHeaders.set('x-user-role', user.role);

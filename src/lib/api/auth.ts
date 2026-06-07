@@ -15,18 +15,26 @@ export function extractBearerToken(request: NextRequest): string | null {
   return extractBearer(request.headers.get('Authorization'));
 }
 
+const VALID_ROLES: AuthUser['role'][] = ['SALES', 'MANAGER', 'ADMIN'];
+
 function userFromProxyHeaders(request: NextRequest): AuthUser | null {
   const id = request.headers.get('x-user-id');
   const role = request.headers.get('x-user-role');
   if (!id || !role) return null;
+
+  const numId = Number(id);
+  if (!Number.isFinite(numId)) return null;
+  if (!VALID_ROLES.includes(role as AuthUser['role'])) return null;
+
+  const deptIdStr = request.headers.get('x-user-department-id');
+  const deptId = deptIdStr ? Number(deptIdStr) : null;
+
   return {
-    id: Number(id),
+    id: numId,
     name: decodeURIComponent(request.headers.get('x-user-name') ?? ''),
     email: request.headers.get('x-user-email') ?? '',
     role: role as AuthUser['role'],
-    departmentId: request.headers.get('x-user-department-id')
-      ? Number(request.headers.get('x-user-department-id'))
-      : null,
+    departmentId: deptId !== null && Number.isFinite(deptId) ? deptId : null,
   };
 }
 
