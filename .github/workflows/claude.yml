@@ -9,9 +9,6 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main]
 
 jobs:
   claude:
@@ -26,7 +23,7 @@ jobs:
       pull-requests: read
       issues: read
       id-token: write
-      actions: read
+      actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,44 +35,16 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
 
-  auto-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
-      id-token: write
-      actions: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
+          # prompt: 'Update the pull request description to include a summary of changes.'
 
-      - name: Run Claude Code Review
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          additional_permissions: |
-            actions: read
-          prompt: |
-            このプルリクエストのコードレビューを実施してください。以下の観点で確認し、日本語でPRにコメントしてください。
+          # Optional: Add claude_args to customize behavior and configuration
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
+          # claude_args: '--allowed-tools Bash(gh pr *)'
 
-            ## レビュー観点
-
-            1. **バグ・論理エラー**: 明確なバグや意図しない動作を引き起こすロジックの誤り
-            2. **セキュリティ**: 認証・認可の漏れ、入力バリデーション不足、SQLインジェクション等のOWASP Top 10
-            3. **仕様準拠**: doc/配下のドキュメント（要件定義・API仕様・画面定義）への準拠
-            4. **コード品質**: 過度な複雑さ、重複、不適切な命名
-            5. **テスト**: 重要なビジネスロジックに対するテストの有無
-
-            ## 出力ルール
-
-            - 重要度が高い問題（バグ・セキュリティ）を優先して報告する
-            - 軽微なスタイルの問題は省略する
-            - 指摘がない場合は「問題なし」と明記する
-            - インラインコメントで具体的な箇所を示す
