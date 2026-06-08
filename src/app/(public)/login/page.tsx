@@ -3,22 +3,10 @@
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
-import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-const LoginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'メールアドレスは必須です')
-    .email('メールアドレスの形式が正しくありません')
-    .max(255, 'メールアドレスは255文字以内で入力してください'),
-  password: z
-    .string()
-    .min(1, 'パスワードは必須です')
-    .max(72, 'パスワードは72文字以内で入力してください'),
-});
+import { LoginSchema } from '@/lib/schemas/auth.schema';
 
 type FieldErrors = Partial<Record<'email' | 'password', string>>;
 
@@ -101,7 +89,8 @@ export default function LoginPage() {
         }
 
         setFormError('サーバーエラーが発生しました。しばらくしてから再度お試しください。');
-      } catch {
+      } catch (err) {
+        console.error('[login] network error:', err);
         setFormError('ネットワークエラーが発生しました。接続を確認してください。');
       }
     });
@@ -138,6 +127,8 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               maxLength={255}
+              required
+              aria-required="true"
               disabled={isPending}
               aria-invalid={!!fieldErrors.email}
               aria-describedby={fieldErrors.email ? emailErrorId : undefined}
@@ -159,6 +150,8 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               maxLength={72}
+              required
+              aria-required="true"
               disabled={isPending}
               aria-invalid={!!fieldErrors.password}
               aria-describedby={fieldErrors.password ? passwordErrorId : undefined}
