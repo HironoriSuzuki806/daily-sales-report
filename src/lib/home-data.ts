@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Data-access helpers for the Home page (SCR-002).
  *
@@ -112,4 +114,3 @@ export async function getRecentCommentsForUser(
     };
   });
 }
-

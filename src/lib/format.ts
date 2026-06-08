@@ -1,18 +1,26 @@
-/** Formats a Date as "YYYY-MM-DD" using local time. */
+/** Formats a Date as "YYYY-MM-DD" using UTC. */
 export function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return date.toISOString().slice(0, 10);
 }
 
-/** Formats a Date as "YYYY-MM-DDTHH:mm:ss" using local time. */
+/**
+ * Formats a Date as "YYYY-MM-DDTHH:mm:ssZ" using UTC.
+ * The trailing Z makes the value a valid ISO 8601 datetime with timezone,
+ * suitable for use in <time dateTime> attributes.
+ */
 export function formatDatetime(date: Date): string {
-  const y = date.getFullYear();
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const mi = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${y}-${mo}-${d}T${h}:${mi}:${s}`;
+  return date.toISOString().slice(0, 19) + 'Z';
+}
+
+/**
+ * Converts an ISO 8601 datetime string (e.g. "YYYY-MM-DDTHH:mm:ssZ") to the
+ * display format "YYYY-MM-DD HH:mm" used throughout the UI.
+ */
+export function formatDatetimeDisplay(iso: string): string {
+  return iso.replace('T', ' ').slice(0, 16);
+}
+
+/** Returns today's date as "YYYY-MM-DD" using UTC. */
+export function getTodayString(): string {
+  return new Date().toISOString().slice(0, 10);
 }

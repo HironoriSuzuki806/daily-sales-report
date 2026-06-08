@@ -9,18 +9,7 @@ import { getSessionUser } from '@/lib/session';
 import { getTodayReport, getRecentCommentsForUser } from '@/lib/home-data';
 import type { RecentCommentResult } from '@/lib/home-data';
 import type { ReportStatus } from '@/types/index';
-import { formatDate } from '@/lib/format';
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-function formatDateTime(iso: string): string {
-  // Input: YYYY-MM-DDTHH:mm:ss  → Display: YYYY-MM-DD HH:mm
-  return iso.replace('T', ' ').slice(0, 16);
-}
-
-function getTodayString(): string {
-  return formatDate(new Date());
-}
+import { formatDatetimeDisplay, getTodayString } from '@/lib/format';
 
 // ─── status badge ─────────────────────────────────────────────────────────────
 
@@ -112,7 +101,7 @@ function RecentCommentsCard({ comments }: RecentCommentsCardProps) {
                       {c.commenterName}
                     </span>
                     <time dateTime={c.createdAt} className="text-muted-foreground shrink-0 text-xs">
-                      {formatDateTime(c.createdAt)}
+                      {formatDatetimeDisplay(c.createdAt)}
                     </time>
                   </div>
                   <p className="text-muted-foreground text-xs">日報: {c.reportDate}</p>
