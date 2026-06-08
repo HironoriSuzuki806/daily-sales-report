@@ -7,20 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { getSessionUser } from '@/lib/session';
 import { getTodayReport, getRecentCommentsForUser } from '@/lib/home-data';
+import type { RecentCommentResult } from '@/lib/home-data';
 import type { ReportStatus } from '@/types/index';
+import { formatDate } from '@/lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function formatDateTime(iso: string): string {
   // Input: YYYY-MM-DDTHH:mm:ss  → Display: YYYY-MM-DD HH:mm
   return iso.replace('T', ' ').slice(0, 16);
-}
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 function getTodayString(): string {
@@ -90,17 +85,8 @@ function TodayReportCard({ reportId, status, today }: TodayReportCardProps) {
 
 // ─── recent comments section ──────────────────────────────────────────────────
 
-type RecentComment = {
-  commentId: string;
-  reportId: string;
-  reportDate: string;
-  commenterName: string;
-  contentPreview: string;
-  createdAt: string;
-};
-
 type RecentCommentsCardProps = {
-  comments: RecentComment[];
+  comments: RecentCommentResult[];
 };
 
 function RecentCommentsCard({ comments }: RecentCommentsCardProps) {

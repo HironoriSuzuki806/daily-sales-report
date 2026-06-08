@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import type { ReportStatus } from '@/types/index';
+import { formatDate, formatDatetime } from '@/lib/format';
 
 // ─── Today's report ────────────────────────────────────────────────────────────
 
@@ -23,10 +24,12 @@ export async function getTodayReport(
   salespersonId: bigint,
   today: string
 ): Promise<TodayReportResult | null> {
-  const report = await prisma.dailyReport.findFirst({
+  const report = await prisma.dailyReport.findUnique({
     where: {
-      salespersonId,
-      reportDate: new Date(today),
+      salespersonId_reportDate: {
+        salespersonId,
+        reportDate: new Date(today),
+      },
     },
     select: {
       id: true,
@@ -110,22 +113,3 @@ export async function getRecentCommentsForUser(
   });
 }
 
-// ─── formatting helpers (server-only) ─────────────────────────────────────────
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatDatetime(date: Date): string {
-  // Returns YYYY-MM-DDTHH:mm:ss (no milliseconds, no timezone suffix)
-  const y = date.getFullYear();
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const mi = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${y}-${mo}-${d}T${h}:${mi}:${s}`;
-}
