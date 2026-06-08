@@ -1,8 +1,7 @@
 // proxy.ts is the Next.js 16 successor to middleware.ts.
 // Next.js detects this file at src/proxy.ts and invokes the `proxy` export.
-// Running in Node.js runtime lets us access the same in-memory token blacklist
-// that route handlers use, so logged-out tokens are rejected here too.
-export const runtime = 'nodejs';
+// Proxy always runs on the Node.js runtime (route segment config is not allowed here),
+// so it shares the same in-memory token blacklist as route handlers.
 
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
