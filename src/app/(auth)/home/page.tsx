@@ -28,7 +28,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
   if (status === 'DRAFT') {
     return <Badge variant="secondary">下書き</Badge>;
   }
-  return <Badge className="bg-green-600 text-white hover:bg-green-700">提出済</Badge>;
+  return <Badge variant="success">提出済</Badge>;
 }
 
 // ─── today's report section ───────────────────────────────────────────────────
