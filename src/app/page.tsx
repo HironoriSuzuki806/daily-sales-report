@@ -2,17 +2,15 @@ import { redirect } from 'next/navigation';
 
 import { getSessionUser } from '@/lib/session';
 
-export default async function Home() {
+/**
+ * Root route (`/`).
+ * - Authenticated users  → /home  (SCR-002)
+ * - Unauthenticated users → /login (SCR-001)
+ */
+export default async function RootPage() {
   const session = await getSessionUser();
-  if (!session) {
-    redirect('/login');
+  if (session) {
+    redirect('/home');
   }
-  return (
-    <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-3xl font-bold tracking-tight">営業日報システム</h1>
-      <p className="text-muted-foreground">
-        ようこそ、{session.name} さん — ホーム画面は準備中です（Issue #20）
-      </p>
-    </div>
-  );
+  redirect('/login');
 }
