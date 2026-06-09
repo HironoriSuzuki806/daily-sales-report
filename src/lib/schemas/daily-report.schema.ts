@@ -4,7 +4,7 @@ export const VisitRecordInputSchema = z.object({
   customerId: z.number().int().positive().optional(),
   visitTime: z
     .string()
-    .regex(/^\d{2}:\d{2}$/, '訪問時刻は HH:mm 形式で入力してください')
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, '訪問時刻は HH:mm 形式（00:00〜23:59）で入力してください')
     .optional(),
   visitContent: z.string().max(2000, '訪問内容は2000文字以内で入力してください').optional(),
   sortOrder: z.number().int().min(0),

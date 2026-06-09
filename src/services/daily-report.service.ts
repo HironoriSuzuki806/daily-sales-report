@@ -106,7 +106,7 @@ export async function createDailyReport(
         plan: input.plan ?? null,
         status: 'DRAFT',
         visitRecords: {
-          create: (input.visitRecords ?? []).map((vr) => ({
+          create: input.visitRecords.map((vr) => ({
             customerId: vr.customerId ? BigInt(vr.customerId) : null,
             visitTime: vr.visitTime ?? null,
             visitContent: vr.visitContent ?? null,
