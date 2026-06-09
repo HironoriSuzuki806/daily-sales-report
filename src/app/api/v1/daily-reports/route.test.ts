@@ -175,4 +175,17 @@ describe('POST /api/v1/daily-reports', () => {
     expect(res.status).toBe(401);
     expect(body.message).toBe('認証が必要です');
   });
+
+  it('ADMIN ロール → 403', async () => {
+    mockRequireAuth.mockResolvedValue({
+      ...salesUser,
+      role: 'ADMIN' as const,
+    });
+
+    const res = await POST(makeRequest({ reportDate: '2026-06-04' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body.message).toBe('この操作を行う権限がありません');
+  });
 });

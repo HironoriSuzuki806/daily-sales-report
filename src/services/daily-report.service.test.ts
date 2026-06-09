@@ -6,14 +6,14 @@ import { createDailyReport } from './daily-report.service';
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    $transaction: vi.fn(),
+    dailyReport: {
+      create: vi.fn(),
+    },
   },
 }));
 
 import { prisma } from '@/lib/prisma';
-const mockPrisma = prisma as unknown as {
-  $transaction: ReturnType<typeof vi.fn>;
-};
+const mockCreate = prisma.dailyReport.create as ReturnType<typeof vi.fn>;
 
 const now = new Date('2026-06-04T10:00:00Z');
 
@@ -40,14 +40,7 @@ describe('createDailyReport', () => {
 
   it('TC-RPT-001: 正常作成 → 201 DRAFT', async () => {
     const mockReport = makeMockReport();
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const tx = {
-        dailyReport: {
-          create: vi.fn().mockResolvedValue(mockReport),
-        },
-      };
-      return fn(tx);
-    });
+    mockCreate.mockResolvedValue(mockReport);
 
     const result = await createDailyReport(12, {
       reportDate: '2026-06-04',
@@ -59,6 +52,15 @@ describe('createDailyReport', () => {
     expect(result.salesperson).toEqual({ id: 12, name: '山田太郎' });
     expect(result.reportDate).toBe('2026-06-04');
     expect(result.submittedAt).toBeNull();
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          salespersonId: BigInt(12),
+          reportDate: new Date('2026-06-04'),
+          status: 'DRAFT',
+        }),
+      })
+    );
   });
 
   it('TC-RPT-002: 訪問記録を複数行登録 → sortOrder順に並ぶ', async () => {
@@ -98,12 +100,7 @@ describe('createDailyReport', () => {
       },
     ];
     const mockReport = makeMockReport({ visitRecords });
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const tx = {
-        dailyReport: { create: vi.fn().mockResolvedValue(mockReport) },
-      };
-      return fn(tx);
-    });
+    mockCreate.mockResolvedValue(mockReport);
 
     const result = await createDailyReport(12, {
       reportDate: '2026-06-04',
@@ -127,12 +124,7 @@ describe('createDailyReport', () => {
       clientVersion: '7.0.0',
       meta: { target: ['salesperson_id', 'report_date'] },
     });
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const tx = {
-        dailyReport: { create: vi.fn().mockRejectedValue(prismaError) },
-      };
-      return fn(tx);
-    });
+    mockCreate.mockRejectedValue(prismaError);
 
     const { ApiError } = await import('@/lib/api');
     await expect(
@@ -145,12 +137,7 @@ describe('createDailyReport', () => {
       problem: '課題テキスト',
       plan: '予定テキスト',
     });
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const tx = {
-        dailyReport: { create: vi.fn().mockResolvedValue(mockReport) },
-      };
-      return fn(tx);
-    });
+    mockCreate.mockResolvedValue(mockReport);
 
     const result = await createDailyReport(12, {
       reportDate: '2026-06-04',
@@ -165,12 +152,7 @@ describe('createDailyReport', () => {
 
   it('TC-RPT-010: problem・plan 未入力でも下書き保存できる', async () => {
     const mockReport = makeMockReport();
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const tx = {
-        dailyReport: { create: vi.fn().mockResolvedValue(mockReport) },
-      };
-      return fn(tx);
-    });
+    mockCreate.mockResolvedValue(mockReport);
 
     const result = await createDailyReport(12, {
       reportDate: '2026-06-04',

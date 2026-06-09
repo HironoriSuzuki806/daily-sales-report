@@ -25,7 +25,7 @@ export interface DailyReportDetailResponse {
   id: number;
   reportDate: string;
   salesperson: { id: number; name: string };
-  status: string;
+  status: 'DRAFT' | 'SUBMITTED';
   submittedAt: string | null;
   problem: string | null;
   plan: string | null;
@@ -98,27 +98,23 @@ export async function createDailyReport(
   const reportDate = new Date(input.reportDate);
 
   try {
-    const report = await prisma.$transaction(async (tx) => {
-      const created = await tx.dailyReport.create({
-        data: {
-          salespersonId: BigInt(salespersonId),
-          reportDate,
-          problem: input.problem ?? null,
-          plan: input.plan ?? null,
-          status: 'DRAFT',
-          visitRecords: {
-            create: (input.visitRecords ?? []).map((vr) => ({
-              customerId: vr.customerId ? BigInt(vr.customerId) : null,
-              visitTime: vr.visitTime ?? null,
-              visitContent: vr.visitContent ?? null,
-              sortOrder: vr.sortOrder,
-            })),
-          },
+    const report = await prisma.dailyReport.create({
+      data: {
+        salespersonId: BigInt(salespersonId),
+        reportDate,
+        problem: input.problem ?? null,
+        plan: input.plan ?? null,
+        status: 'DRAFT',
+        visitRecords: {
+          create: (input.visitRecords ?? []).map((vr) => ({
+            customerId: vr.customerId ? BigInt(vr.customerId) : null,
+            visitTime: vr.visitTime ?? null,
+            visitContent: vr.visitContent ?? null,
+            sortOrder: vr.sortOrder,
+          })),
         },
-        include: dailyReportInclude,
-      });
-
-      return created;
+      },
+      include: dailyReportInclude,
     });
 
     return mapToDetailResponse(report);
