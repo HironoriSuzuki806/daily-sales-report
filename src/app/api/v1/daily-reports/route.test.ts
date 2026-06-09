@@ -188,4 +188,21 @@ describe('POST /api/v1/daily-reports', () => {
     expect(res.status).toBe(403);
     expect(body.message).toBe('この操作を行う権限がありません');
   });
+
+  it('MANAGER ロール → 201（SALESと同様に作成可能）', async () => {
+    mockRequireAuth.mockResolvedValue({ ...salesUser, role: 'MANAGER' as const });
+    mockCreateDailyReport.mockResolvedValue(baseReportResponse);
+
+    const res = await POST(makeRequest({ reportDate: '2026-06-04' }));
+
+    expect(res.status).toBe(201);
+  });
+
+  it('reportDate が存在しない日付（2026-02-30）→ 400', async () => {
+    const res = await POST(makeRequest({ reportDate: '2026-02-30' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.fieldErrors.some((e: { field: string }) => e.field === 'reportDate')).toBe(true);
+  });
 });

@@ -15,7 +15,11 @@ export const CreateDailyReportSchema = z.object({
     .string()
     .min(1, '報告日は必須です')
     .regex(/^\d{4}-\d{2}-\d{2}$/, '報告日は YYYY-MM-DD 形式で入力してください')
-    .refine((v) => !isNaN(new Date(v).getTime()), '有効な日付を入力してください'),
+    .refine((v) => {
+      const [y, m, d] = v.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+    }, '有効な日付を入力してください'),
   problem: z.string().max(2000, '課題・相談は2000文字以内で入力してください').optional(),
   plan: z.string().max(2000, '翌日の予定は2000文字以内で入力してください').optional(),
   visitRecords: z.array(VisitRecordInputSchema).default([]),
