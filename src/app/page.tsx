@@ -1,16 +1,18 @@
-// TODO: Issue #8 (SCR-001 ログイン画面) 実装後、/login へリダイレクトする
-import { Button } from '@/components/ui/button';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+import { getSessionUser } from '@/lib/session';
+
+export default async function Home() {
+  const session = await getSessionUser();
+  if (!session) {
+    redirect('/login');
+  }
   return (
-    <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-6">
+    <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-3xl font-bold tracking-tight">営業日報システム</h1>
-      <p className="text-muted-foreground">セットアップ完了 — shadcn/ui Button の動作確認</p>
-      <div className="flex gap-3">
-        <Button>ログイン</Button>
-        <Button variant="outline">キャンセル</Button>
-        <Button variant="destructive">削除</Button>
-      </div>
+      <p className="text-muted-foreground">
+        ようこそ、{session.name} さん — ホーム画面は準備中です（Issue #20）
+      </p>
     </div>
   );
 }
