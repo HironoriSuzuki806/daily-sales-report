@@ -205,4 +205,19 @@ describe('POST /api/v1/daily-reports', () => {
     expect(res.status).toBe(400);
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'reportDate')).toBe(true);
   });
+
+  it('visitTime が無効な時刻（25:00）→ 400', async () => {
+    const res = await POST(
+      makeRequest({
+        reportDate: '2026-06-04',
+        visitRecords: [{ sortOrder: 1, visitTime: '25:00' }],
+      })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.fieldErrors.some((e: { field: string }) => e.field.includes('visitTime'))).toBe(
+      true
+    );
+  });
 });
