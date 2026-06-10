@@ -57,7 +57,6 @@ const baseSalesperson = {
 const validBody = {
   name: '山田太郎',
   email: 'yamada@example.com',
-  password: 'password123',
   role: 'SALES',
   departmentId: 3,
   isActive: true,

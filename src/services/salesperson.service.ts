@@ -127,11 +127,6 @@ export async function updateSalesperson(
   id: number,
   input: SalespersonUpdate
 ): Promise<SalespersonResponse> {
-  const existing = await prisma.salesperson.findUnique({ where: { id: BigInt(id) } });
-  if (!existing) {
-    notFound('営業が見つかりません');
-  }
-
   try {
     const salesperson = await prisma.salesperson.update({
       where: { id: BigInt(id) },
@@ -144,19 +139,12 @@ export async function updateSalesperson(
       },
       include: salespersonInclude,
     });
-
     return mapToResponse(salesperson);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
-      if (err.code === 'P2002') {
-        conflict('このメールアドレスはすでに使用されています');
-      }
-      if (err.code === 'P2025') {
-        notFound('営業が見つかりません');
-      }
-      if (err.code === 'P2003') {
-        badRequest('指定された部署が存在しません');
-      }
+      if (err.code === 'P2002') conflict('このメールアドレスは既に使用されています');
+      if (err.code === 'P2025') notFound('営業が見つかりません');
+      if (err.code === 'P2003') badRequest('指定された部署が存在しません');
     }
     throw err;
   }
