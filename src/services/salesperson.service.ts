@@ -4,7 +4,11 @@ import { badRequest, conflict, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery } from '@/lib/api/pagination';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
-import type { SalespersonInput, SalespersonQuery } from '@/lib/schemas/salesperson.schema';
+import type {
+  SalespersonInput,
+  SalespersonUpdate,
+  SalespersonQuery,
+} from '@/lib/schemas/salesperson.schema';
 
 // ─── Response types ────────────────────────────────────────────────────────────
 
@@ -121,7 +125,7 @@ export async function createSalesperson(input: SalespersonInput): Promise<Salesp
 
 export async function updateSalesperson(
   id: number,
-  input: SalespersonInput
+  input: SalespersonUpdate
 ): Promise<SalespersonResponse> {
   const existing = await prisma.salesperson.findUnique({ where: { id: BigInt(id) } });
   if (!existing) {
@@ -159,13 +163,15 @@ export async function updateSalesperson(
 }
 
 export async function deleteSalesperson(id: number): Promise<void> {
-  const existing = await prisma.salesperson.findUnique({ where: { id: BigInt(id) } });
-  if (!existing) {
-    notFound('営業が見つかりません');
+  try {
+    await prisma.salesperson.update({
+      where: { id: BigInt(id) },
+      data: { isActive: false },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      notFound('営業が見つかりません');
+    }
+    throw err;
   }
-
-  await prisma.salesperson.update({
-    where: { id: BigInt(id) },
-    data: { isActive: false },
-  });
 }
