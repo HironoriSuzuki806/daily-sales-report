@@ -50,22 +50,22 @@ export function withErrorHandler(
   };
 }
 
-export function notFound(message = 'リソースが見つかりません') {
+export function notFound(message = 'リソースが見つかりません'): never {
   throw new ApiError(HttpStatus.NOT_FOUND, message);
 }
 
-export function forbidden(message = 'この操作を行う権限がありません') {
+export function forbidden(message = 'この操作を行う権限がありません'): never {
   throw new ApiError(HttpStatus.FORBIDDEN, message);
 }
 
-export function unauthorized(message = '認証が必要です') {
+export function unauthorized(message = '認証が必要です'): never {
   throw new ApiError(HttpStatus.UNAUTHORIZED, message);
 }
 
-export function conflict(message: string) {
+export function conflict(message: string): never {
   throw new ApiError(HttpStatus.CONFLICT, message);
 }
 
-export function badRequest(message: string) {
+export function badRequest(message: string): never {
   throw new ApiError(HttpStatus.BAD_REQUEST, message);
 }
