@@ -8,7 +8,7 @@ type RouteContext = { params: Promise<Record<string, string>> };
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = 'ApiError';
@@ -22,7 +22,7 @@ export class ApiError extends Error {
  * - その他 Error → 500
  */
 export function withErrorHandler(
-  handler: (request: NextRequest, context?: RouteContext) => Promise<NextResponse>,
+  handler: (request: NextRequest, context?: RouteContext) => Promise<NextResponse>
 ) {
   return async (request: NextRequest, context?: RouteContext): Promise<NextResponse> => {
     const path = new URL(request.url).pathname;
@@ -34,7 +34,7 @@ export function withErrorHandler(
           HttpStatus.BAD_REQUEST,
           '入力値に誤りがあります',
           path,
-          zodErrorToFieldErrors(error),
+          zodErrorToFieldErrors(error)
         );
       }
       if (error instanceof ApiError) {
@@ -44,28 +44,28 @@ export function withErrorHandler(
       return createErrorResponse(
         HttpStatus.INTERNAL_SERVER_ERROR,
         'サーバー内部エラーが発生しました',
-        path,
+        path
       );
     }
   };
 }
 
-export function notFound(message = 'リソースが見つかりません') {
+export function notFound(message = 'リソースが見つかりません'): never {
   throw new ApiError(HttpStatus.NOT_FOUND, message);
 }
 
-export function forbidden(message = 'この操作を行う権限がありません') {
+export function forbidden(message = 'この操作を行う権限がありません'): never {
   throw new ApiError(HttpStatus.FORBIDDEN, message);
 }
 
-export function unauthorized(message = '認証が必要です') {
+export function unauthorized(message = '認証が必要です'): never {
   throw new ApiError(HttpStatus.UNAUTHORIZED, message);
 }
 
-export function conflict(message: string) {
+export function conflict(message: string): never {
   throw new ApiError(HttpStatus.CONFLICT, message);
 }
 
-export function badRequest(message: string) {
+export function badRequest(message: string): never {
   throw new ApiError(HttpStatus.BAD_REQUEST, message);
 }
