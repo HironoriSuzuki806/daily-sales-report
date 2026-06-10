@@ -128,7 +128,7 @@ export async function updateSalesperson(
   input: SalespersonUpdate
 ): Promise<SalespersonResponse> {
   try {
-    const data: Prisma.SalespersonUpdateInput = {
+    const data: Prisma.SalespersonUncheckedUpdateInput = {
       name: input.name,
       email: input.email,
       role: input.role,
