@@ -153,6 +153,11 @@ describe('POST /api/v1/customers', () => {
     expect(res.status).toBe(403);
   });
 
+  it('address が空文字 → 400', async () => {
+    const res = await POST(makePostRequest({ name: 'ABC商事', address: '' }));
+    expect(res.status).toBe(400);
+  });
+
   it('存在しない salesRepId 指定 → 400', async () => {
     const { ApiError } = await import('@/lib/api');
     mockCreateCustomer.mockRejectedValue(new ApiError(400, '指定された担当営業が見つかりません'));

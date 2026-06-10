@@ -35,7 +35,7 @@ export const CustomerQuerySchema = z.object({
   salesRepId: z
     .string()
     .optional()
-    .transform((v) => (v !== undefined ? parseInt(v, 10) : undefined))
+    .transform((v) => (v !== undefined ? Number(v) : undefined))
     .pipe(z.number().int().positive().optional()),
   isActive: z
     .string()
