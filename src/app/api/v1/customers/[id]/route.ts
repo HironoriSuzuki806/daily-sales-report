@@ -10,8 +10,8 @@ export const GET = withErrorHandler(
     await requireAuth(request);
 
     const { id: idStr } = await context!.params;
-    const id = parseInt(idStr, 10);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) {
       badRequest('無効なIDです');
     }
 
@@ -28,8 +28,8 @@ export const PUT = withErrorHandler(
     }
 
     const { id: idStr } = await context!.params;
-    const id = parseInt(idStr, 10);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) {
       badRequest('無効なIDです');
     }
 
@@ -47,8 +47,8 @@ export const DELETE = withErrorHandler(
     }
 
     const { id: idStr } = await context!.params;
-    const id = parseInt(idStr, 10);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) {
       badRequest('無効なIDです');
     }
 

@@ -68,6 +68,7 @@ export async function listCustomers(
     prisma.customer.findMany({
       where,
       include: customerInclude,
+      // TODO: pagination.sort に対応したソートを実装する（現状は id 昇順固定）
       orderBy: { id: 'asc' },
       skip: pagination.page * pagination.size,
       take: pagination.size,

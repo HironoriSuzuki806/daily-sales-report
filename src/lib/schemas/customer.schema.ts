@@ -8,7 +8,7 @@ const customerPhoneField = z
 
 export const CustomerCreateSchema = z.object({
   name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
-  address: z.string().max(255, '住所は255文字以内で入力してください').optional(),
+  address: z.string().min(1).max(255, '住所は255文字以内で入力してください').optional(),
   phone: customerPhoneField,
   salesRepId: z.number().int().positive().optional(),
   isActive: z.boolean().optional().default(true),
@@ -16,7 +16,7 @@ export const CustomerCreateSchema = z.object({
 
 export const CustomerUpdateSchema = z.object({
   name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
-  address: z.string().max(255, '住所は255文字以内で入力してください').optional(),
+  address: z.string().min(1).max(255, '住所は255文字以内で入力してください').optional(),
   phone: customerPhoneField,
   salesRepId: z.number().int().positive().optional(),
   isActive: z.boolean(),
@@ -43,6 +43,3 @@ export const CustomerQuerySchema = z.object({
 export type CustomerCreate = z.infer<typeof CustomerCreateSchema>;
 export type CustomerUpdate = z.infer<typeof CustomerUpdateSchema>;
 export type CustomerQuery = z.infer<typeof CustomerQuerySchema>;
-
-// 後方互換: サービス層の引数型として使う共用型
-export type CustomerInput = CustomerCreate | CustomerUpdate;
