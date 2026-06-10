@@ -1,15 +1,25 @@
 import { z } from 'zod';
 
-export const CustomerInputSchema = z.object({
+const customerPhoneField = z
+  .string()
+  .max(20, '電話番号は20文字以内で入力してください')
+  .regex(/^[\d\-]+$/, '電話番号は数字とハイフンのみ使用できます')
+  .optional();
+
+export const CustomerCreateSchema = z.object({
   name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
   address: z.string().max(255, '住所は255文字以内で入力してください').optional(),
-  phone: z
-    .string()
-    .max(20, '電話番号は20文字以内で入力してください')
-    .regex(/^[\d\-]*$/, '電話番号は数字とハイフンのみ使用できます')
-    .optional(),
+  phone: customerPhoneField,
   salesRepId: z.number().int().positive().optional(),
   isActive: z.boolean().optional().default(true),
+});
+
+export const CustomerUpdateSchema = z.object({
+  name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
+  address: z.string().max(255, '住所は255文字以内で入力してください').optional(),
+  phone: customerPhoneField,
+  salesRepId: z.number().int().positive().optional(),
+  isActive: z.boolean(),
 });
 
 export const CustomerQuerySchema = z.object({
@@ -30,5 +40,9 @@ export const CustomerQuerySchema = z.object({
     .pipe(z.boolean().optional()),
 });
 
-export type CustomerInput = z.infer<typeof CustomerInputSchema>;
+export type CustomerCreate = z.infer<typeof CustomerCreateSchema>;
+export type CustomerUpdate = z.infer<typeof CustomerUpdateSchema>;
 export type CustomerQuery = z.infer<typeof CustomerQuerySchema>;
+
+// 後方互換: サービス層の引数型として使う共用型
+export type CustomerInput = CustomerCreate | CustomerUpdate;

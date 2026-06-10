@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAuth, withErrorHandler, forbidden, badRequest } from '@/lib/api';
 import { HttpStatus } from '@/lib/api/http-status';
-import { CustomerInputSchema } from '@/lib/schemas/customer.schema';
+import { CustomerUpdateSchema } from '@/lib/schemas/customer.schema';
 import { getCustomer, updateCustomer, deactivateCustomer } from '@/services/customer.service';
 
 export const GET = withErrorHandler(
@@ -33,7 +33,7 @@ export const PUT = withErrorHandler(
       badRequest('無効なIDです');
     }
 
-    const body = CustomerInputSchema.parse(await request.json());
+    const body = CustomerUpdateSchema.parse(await request.json());
     const result = await updateCustomer(id, body);
     return NextResponse.json(result, { status: HttpStatus.OK });
   }

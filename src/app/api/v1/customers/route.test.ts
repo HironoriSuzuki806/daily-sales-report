@@ -100,6 +100,14 @@ describe('GET /api/v1/customers', () => {
     );
   });
 
+  it('salesRepId クエリで絞り込み呼び出し', async () => {
+    await GET(makeGetRequest({ salesRepId: '12' }));
+    expect(mockListCustomers).toHaveBeenCalledWith(
+      expect.objectContaining({ salesRepId: 12 }),
+      expect.any(Object)
+    );
+  });
+
   it('未認証 → 401', async () => {
     const { ApiError } = await import('@/lib/api');
     mockRequireAuth.mockRejectedValue(new ApiError(401, '認証が必要です'));
@@ -143,5 +151,12 @@ describe('POST /api/v1/customers', () => {
     mockRequireAuth.mockResolvedValue(salesUser);
     const res = await POST(makePostRequest({ name: 'ABC商事' }));
     expect(res.status).toBe(403);
+  });
+
+  it('存在しない salesRepId 指定 → 400', async () => {
+    const { ApiError } = await import('@/lib/api');
+    mockCreateCustomer.mockRejectedValue(new ApiError(400, '指定された担当営業が見つかりません'));
+    const res = await POST(makePostRequest({ name: 'ABC商事', salesRepId: 99999 }));
+    expect(res.status).toBe(400);
   });
 });

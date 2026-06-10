@@ -1,9 +1,9 @@
 import { Prisma } from '@/generated/prisma/client';
-import { notFound } from '@/lib/api';
+import { notFound, badRequest } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
-import type { CustomerInput, CustomerQuery } from '@/lib/schemas/customer.schema';
+import type { CustomerCreate, CustomerUpdate, CustomerQuery } from '@/lib/schemas/customer.schema';
 
 // ─── Response types ────────────────────────────────────────────────────────────
 
@@ -88,14 +88,14 @@ export async function getCustomer(id: number): Promise<CustomerResponse> {
   return mapToResponse(customer);
 }
 
-export async function createCustomer(input: CustomerInput): Promise<CustomerResponse> {
+export async function createCustomer(input: CustomerCreate): Promise<CustomerResponse> {
   if (input.salesRepId !== undefined) {
     const exists = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.salesRepId) },
+      where: { id: BigInt(input.salesRepId), isActive: true },
       select: { id: true },
     });
     if (!exists) {
-      notFound('指定された担当営業が見つかりません');
+      badRequest('指定された担当営業が見つかりません');
     }
   }
 
@@ -113,7 +113,7 @@ export async function createCustomer(input: CustomerInput): Promise<CustomerResp
   return mapToResponse(customer);
 }
 
-export async function updateCustomer(id: number, input: CustomerInput): Promise<CustomerResponse> {
+export async function updateCustomer(id: number, input: CustomerUpdate): Promise<CustomerResponse> {
   const existing = await prisma.customer.findUnique({
     where: { id: BigInt(id) },
     select: { id: true },
@@ -124,11 +124,11 @@ export async function updateCustomer(id: number, input: CustomerInput): Promise<
 
   if (input.salesRepId !== undefined) {
     const exists = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.salesRepId) },
+      where: { id: BigInt(input.salesRepId), isActive: true },
       select: { id: true },
     });
     if (!exists) {
-      notFound('指定された担当営業が見つかりません');
+      badRequest('指定された担当営業が見つかりません');
     }
   }
 

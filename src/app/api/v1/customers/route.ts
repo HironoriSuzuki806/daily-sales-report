@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, withErrorHandler, forbidden } from '@/lib/api';
 import { HttpStatus } from '@/lib/api/http-status';
 import { paginationQuerySchema } from '@/lib/api/pagination';
-import { CustomerInputSchema, CustomerQuerySchema } from '@/lib/schemas/customer.schema';
+import { CustomerCreateSchema, CustomerQuerySchema } from '@/lib/schemas/customer.schema';
 import { listCustomers, createCustomer } from '@/services/customer.service';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -23,7 +23,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     forbidden('この操作を行う権限がありません');
   }
 
-  const body = CustomerInputSchema.parse(await request.json());
+  const body = CustomerCreateSchema.parse(await request.json());
   const result = await createCustomer(body);
   return NextResponse.json(result, { status: HttpStatus.CREATED });
 });

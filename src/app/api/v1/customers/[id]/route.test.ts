@@ -92,6 +92,11 @@ describe('GET /api/v1/customers/[id]', () => {
     const res = await GET(makeRequest('GET'), makeContext());
     expect(res.status).toBe(401);
   });
+
+  it('IDが非数値（/customers/abc）→ 400', async () => {
+    const res = await GET(makeRequest('GET'), makeContext('abc'));
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('PUT /api/v1/customers/[id]', () => {
@@ -122,8 +127,14 @@ describe('PUT /api/v1/customers/[id]', () => {
   it('存在しない顧客 → 404', async () => {
     const { ApiError } = await import('@/lib/api');
     mockUpdateCustomer.mockRejectedValue(new ApiError(404, '顧客が見つかりません'));
-    const res = await PUT(makeRequest('PUT', { name: 'ABC商事' }), makeContext());
+    const res = await PUT(makeRequest('PUT', { name: 'ABC商事', isActive: true }), makeContext());
     expect(res.status).toBe(404);
+  });
+
+  it('isActive を省略すると CustomerUpdateSchema が 400 を返す', async () => {
+    // CustomerUpdateSchema では isActive は必須のため、省略すると Zod バリデーションエラー
+    const res = await PUT(makeRequest('PUT', { name: 'ABC商事改' }), makeContext());
+    expect(res.status).toBe(400);
   });
 });
 
