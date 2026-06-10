@@ -8,7 +8,11 @@ const customerPhoneField = z
 
 export const CustomerCreateSchema = z.object({
   name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
-  address: z.string().min(1).max(255, '住所は255文字以内で入力してください').optional(),
+  address: z
+    .string()
+    .min(1, '住所は1文字以上で入力してください')
+    .max(255, '住所は255文字以内で入力してください')
+    .optional(),
   phone: customerPhoneField,
   salesRepId: z.number().int().positive().optional(),
   isActive: z.boolean().optional().default(true),
@@ -16,7 +20,11 @@ export const CustomerCreateSchema = z.object({
 
 export const CustomerUpdateSchema = z.object({
   name: z.string().min(1, '顧客名は必須です').max(100, '顧客名は100文字以内で入力してください'),
-  address: z.string().min(1).max(255, '住所は255文字以内で入力してください').optional(),
+  address: z
+    .string()
+    .min(1, '住所は1文字以上で入力してください')
+    .max(255, '住所は255文字以内で入力してください')
+    .optional(),
   phone: customerPhoneField,
   salesRepId: z.number().int().positive().optional(),
   isActive: z.boolean(),
