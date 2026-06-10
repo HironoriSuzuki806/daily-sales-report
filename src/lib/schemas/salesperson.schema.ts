@@ -40,9 +40,7 @@ export const SalespersonQuerySchema = z.object({
     }),
 });
 
-export const SalespersonUpdateSchema = SalespersonInputSchema.omit({ password: true }).extend({
-  isActive: z.boolean().optional(),
-});
+export const SalespersonUpdateSchema = SalespersonInputSchema.omit({ password: true });
 
 export type SalespersonInput = z.infer<typeof SalespersonInputSchema>;
 export type SalespersonUpdate = z.infer<typeof SalespersonUpdateSchema>;

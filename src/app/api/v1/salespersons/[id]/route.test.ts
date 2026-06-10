@@ -161,29 +161,6 @@ describe('PUT /api/v1/salespersons/[id]', () => {
     expect(res.status).toBe(400);
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'role')).toBe(true);
   });
-
-  it('isActive を省略しても無効化済み営業が再有効化されない → updateSalesperson に isActive を渡さない', async () => {
-    const bodyWithoutIsActive = {
-      name: '山田太郎',
-      email: 'yamada@example.com',
-      role: 'SALES',
-      departmentId: 3,
-    };
-    const res = await PUT(makeRequest('PUT', bodyWithoutIsActive), makeContext());
-
-    expect(res.status).toBe(200);
-    const callArgs = mockUpdate.mock.calls[0][1] as Record<string, unknown>;
-    expect(callArgs.isActive).toBeUndefined();
-  });
-
-  it('isActive=false を明示すると updateSalesperson に false が渡る', async () => {
-    const bodyWithFalse = { ...validBody, isActive: false };
-    const res = await PUT(makeRequest('PUT', bodyWithFalse), makeContext());
-
-    expect(res.status).toBe(200);
-    const callArgs = mockUpdate.mock.calls[0][1] as Record<string, unknown>;
-    expect(callArgs.isActive).toBe(false);
-  });
 });
 
 describe('DELETE /api/v1/salespersons/[id]', () => {

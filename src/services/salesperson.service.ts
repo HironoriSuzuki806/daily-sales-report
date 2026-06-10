@@ -128,18 +128,15 @@ export async function updateSalesperson(
   input: SalespersonUpdate
 ): Promise<SalespersonResponse> {
   try {
-    const data: Prisma.SalespersonUpdateInput = {
-      name: input.name,
-      email: input.email,
-      role: input.role,
-      departmentId: BigInt(input.departmentId),
-    };
-    if (input.isActive !== undefined) {
-      data.isActive = input.isActive;
-    }
     const salesperson = await prisma.salesperson.update({
       where: { id: BigInt(id) },
-      data,
+      data: {
+        name: input.name,
+        email: input.email,
+        role: input.role,
+        departmentId: BigInt(input.departmentId),
+        isActive: input.isActive,
+      },
       include: salespersonInclude,
     });
     return mapToResponse(salesperson);
