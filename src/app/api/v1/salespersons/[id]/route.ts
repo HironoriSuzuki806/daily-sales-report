@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAuth, withErrorHandler, forbidden, badRequest } from '@/lib/api';
 import { HttpStatus } from '@/lib/api/http-status';
-import { SalespersonInputSchema } from '@/lib/schemas/salesperson.schema';
+import { SalespersonUpdateSchema } from '@/lib/schemas/salesperson.schema';
 import {
   getSalesperson,
   updateSalesperson,
@@ -40,7 +40,7 @@ export const PUT = withErrorHandler(async (request: NextRequest, context?: Route
     badRequest('ID は正の整数を指定してください');
   }
 
-  const body = SalespersonInputSchema.parse(await request.json());
+  const body = SalespersonUpdateSchema.parse(await request.json());
   const result = await updateSalesperson(numId, body);
 
   return NextResponse.json(result);
