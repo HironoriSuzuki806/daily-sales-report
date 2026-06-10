@@ -57,6 +57,7 @@ const baseSalesperson = {
 const validBody = {
   name: '山田太郎',
   email: 'yamada@example.com',
+  password: 'password123',
   role: 'SALES',
   departmentId: 3,
   isActive: true,
@@ -104,6 +105,11 @@ describe('GET /api/v1/salespersons/[id]', () => {
     const res = await GET(makeRequest('GET'), makeContext());
     expect(res.status).toBe(403);
   });
+
+  it('IDが非数値 → 400', async () => {
+    const res = await GET(makeRequest('GET'), makeContext('abc'));
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('PUT /api/v1/salespersons/[id]', () => {
@@ -142,6 +148,11 @@ describe('PUT /api/v1/salespersons/[id]', () => {
 
     const res = await PUT(makeRequest('PUT', validBody), makeContext());
     expect(res.status).toBe(403);
+  });
+
+  it('IDが非数値 → 400', async () => {
+    const res = await PUT(makeRequest('PUT', validBody), makeContext('abc'));
+    expect(res.status).toBe(400);
   });
 
   it('role不正値 → 400', async () => {
@@ -188,5 +199,10 @@ describe('DELETE /api/v1/salespersons/[id]', () => {
 
     const res = await DELETE(makeRequest('DELETE'), makeContext());
     expect(res.status).toBe(401);
+  });
+
+  it('IDが非数値 → 400', async () => {
+    const res = await DELETE(makeRequest('DELETE'), makeContext('abc'));
+    expect(res.status).toBe(400);
   });
 });

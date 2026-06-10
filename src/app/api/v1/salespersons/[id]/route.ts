@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { requireAuth, withErrorHandler, forbidden } from '@/lib/api';
+import { requireAuth, withErrorHandler, forbidden, badRequest } from '@/lib/api';
 import { HttpStatus } from '@/lib/api/http-status';
 import { SalespersonInputSchema } from '@/lib/schemas/salesperson.schema';
 import {
@@ -19,6 +19,9 @@ export const GET = withErrorHandler(async (request: NextRequest, context?: Route
 
   const { id } = await context!.params;
   const numId = parseInt(id, 10);
+  if (isNaN(numId)) {
+    badRequest('ID は正の整数を指定してください');
+  }
 
   const result = await getSalesperson(numId);
 
@@ -33,6 +36,9 @@ export const PUT = withErrorHandler(async (request: NextRequest, context?: Route
 
   const { id } = await context!.params;
   const numId = parseInt(id, 10);
+  if (isNaN(numId)) {
+    badRequest('ID は正の整数を指定してください');
+  }
 
   const body = SalespersonInputSchema.parse(await request.json());
   const result = await updateSalesperson(numId, body);
@@ -48,6 +54,9 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context?: Ro
 
   const { id } = await context!.params;
   const numId = parseInt(id, 10);
+  if (isNaN(numId)) {
+    badRequest('ID は正の整数を指定してください');
+  }
 
   await deleteSalesperson(numId);
 

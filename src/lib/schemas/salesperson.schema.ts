@@ -7,6 +7,10 @@ export const SalespersonInputSchema = z.object({
     .min(1, 'メールアドレスは必須です')
     .email('有効なメールアドレスを入力してください')
     .max(255, 'メールアドレスは255文字以内で入力してください'),
+  password: z
+    .string()
+    .min(1, 'パスワードは必須です')
+    .max(72, 'パスワードは72文字以内で入力してください'),
   role: z.enum(['SALES', 'MANAGER', 'ADMIN'], {
     error: 'role は SALES / MANAGER / ADMIN のいずれかを指定してください',
   }),
@@ -26,14 +30,14 @@ export const SalespersonQuerySchema = z.object({
     .pipe(z.number().int().positive().optional()),
   role: z.enum(['SALES', 'MANAGER', 'ADMIN']).optional(),
   isActive: z
-    .string()
+    .enum(['true', 'false'], {
+      error: 'isActive は true または false を指定してください',
+    })
     .optional()
     .transform((v) => {
-      if (v === 'true') return true;
-      if (v === 'false') return false;
-      return undefined;
-    })
-    .pipe(z.boolean().optional()),
+      if (v === undefined) return undefined;
+      return v === 'true';
+    }),
 });
 
 export type SalespersonInput = z.infer<typeof SalespersonInputSchema>;

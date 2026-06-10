@@ -104,12 +104,18 @@ describe('GET /api/v1/salespersons', () => {
       expect.any(Object)
     );
   });
+
+  it('isActive に true/false 以外 → 400', async () => {
+    const res = await GET(makeGetRequest('?isActive=invalid'));
+    expect(res.status).toBe(400);
+  });
 });
 
 describe('POST /api/v1/salespersons', () => {
   const validBody = {
     name: '山田太郎',
     email: 'yamada@example.com',
+    password: 'password123',
     role: 'SALES',
     departmentId: 3,
     isActive: true,
@@ -163,12 +169,22 @@ describe('POST /api/v1/salespersons', () => {
   });
 
   it('departmentId未入力 → 400', async () => {
-    const { name, email, role, isActive } = validBody;
-    const res = await POST(makePostRequest({ name, email, role, isActive }));
+    const { name, email, password, role, isActive } = validBody;
+    const res = await POST(makePostRequest({ name, email, password, role, isActive }));
     const body = await res.json();
 
     expect(res.status).toBe(400);
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'departmentId')).toBe(true);
+  });
+
+  it('password未入力 → 400', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _pw, ...bodyWithoutPassword } = validBody;
+    const res = await POST(makePostRequest(bodyWithoutPassword));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.fieldErrors.some((e: { field: string }) => e.field === 'password')).toBe(true);
   });
 
   it('SALES ロール → 403', async () => {

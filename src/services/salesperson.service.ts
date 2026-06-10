@@ -1,5 +1,6 @@
+import bcrypt from 'bcryptjs';
 import { Prisma } from '@/generated/prisma/client';
-import { conflict, notFound } from '@/lib/api';
+import { badRequest, conflict, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery } from '@/lib/api/pagination';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
@@ -49,7 +50,7 @@ export async function listSalespersons(query: SalespersonQuery, pagination: Pagi
   const where: Prisma.SalespersonWhereInput = {};
 
   if (query.name !== undefined) {
-    where.name = { contains: query.name };
+    where.name = { contains: query.name, mode: 'insensitive' };
   }
   if (query.departmentId !== undefined) {
     where.departmentId = BigInt(query.departmentId);
@@ -89,12 +90,14 @@ export async function getSalesperson(id: number): Promise<SalespersonResponse> {
 }
 
 export async function createSalesperson(input: SalespersonInput): Promise<SalespersonResponse> {
+  const passwordHash = await bcrypt.hash(input.password, 10);
+
   try {
     const salesperson = await prisma.salesperson.create({
       data: {
         name: input.name,
         email: input.email,
-        passwordHash: '',
+        passwordHash,
         role: input.role,
         departmentId: BigInt(input.departmentId),
         isActive: input.isActive,
@@ -108,8 +111,8 @@ export async function createSalesperson(input: SalespersonInput): Promise<Salesp
       if (err.code === 'P2002') {
         conflict('このメールアドレスはすでに使用されています');
       }
-      if (err.code === 'P2003' || err.code === 'P2025') {
-        throw err;
+      if (err.code === 'P2003') {
+        badRequest('指定された部署が存在しません');
       }
     }
     throw err;
@@ -140,8 +143,16 @@ export async function updateSalesperson(
 
     return mapToResponse(salesperson);
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-      conflict('このメールアドレスはすでに使用されています');
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2002') {
+        conflict('このメールアドレスはすでに使用されています');
+      }
+      if (err.code === 'P2025') {
+        notFound('営業が見つかりません');
+      }
+      if (err.code === 'P2003') {
+        badRequest('指定された部署が存在しません');
+      }
     }
     throw err;
   }
