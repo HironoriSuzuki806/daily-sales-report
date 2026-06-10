@@ -8,7 +8,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    // git worktree 環境では Vite のワークスペースルート解決が親リポジトリを指すことが
+    // あるため、絶対パスで指定する。
+    setupFiles: [path.resolve(__dirname, 'src/test/setup.ts')],
   },
   resolve: {
     alias: {
