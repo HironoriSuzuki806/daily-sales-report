@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -15,6 +16,10 @@ import {
   parseCustomerListParams,
   type CustomerListParams,
 } from './search-params';
+
+export const metadata: Metadata = {
+  title: '顧客マスタ一覧 | 営業日報システム',
+};
 
 const PAGE_SIZE = 20;
 
@@ -234,7 +239,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">顧客マスタ</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">顧客マスタ一覧</h1>
         <Link href="/customers/new" className={cn(buttonVariants({ variant: 'default' }))}>
           新規登録
         </Link>

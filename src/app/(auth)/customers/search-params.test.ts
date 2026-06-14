@@ -75,4 +75,8 @@ describe('buildCustomersPath', () => {
       `/customers?name=${encodeURIComponent('商事')}`
     );
   });
+
+  it('isActive が false のときもクエリに含める', () => {
+    expect(buildCustomersPath({ isActive: 'false', page: 0 })).toBe('/customers?isActive=false');
+  });
 });
