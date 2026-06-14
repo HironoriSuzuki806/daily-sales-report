@@ -20,11 +20,11 @@ const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 /** salespersons 取得（GET）はデフォルトで空リストを返す */
-function mockSalespersonsFetch(content: { id: number; name: string }[] = []) {
+function mockSalespersonsFetch(content: { id: number; name: string }[] = [], totalPages = 1) {
   return {
     ok: true,
     status: 200,
-    json: async () => ({ content }),
+    json: async () => ({ content, totalPages }),
   };
 }
 
@@ -118,7 +118,7 @@ describe('CustomerForm', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/v1/salespersons?isActive=true&size=100',
+        '/api/v1/salespersons?isActive=true&size=100&page=0',
         expect.anything()
       );
     });
@@ -222,6 +222,56 @@ describe('CustomerForm', () => {
     expect(pushMock).toHaveBeenCalledWith('/customers');
 
     // salespersons 取得の state 更新を待って act 警告を防ぐ
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+  });
+
+  it('403 レスポンス時に権限エラーメッセージが表示される', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.startsWith('/api/v1/salespersons')) return mockSalespersonsFetch();
+      return { ok: false, status: 403 };
+    });
+
+    render(<CustomerForm />);
+    fireEvent.change(screen.getByLabelText(/顧客名/), { target: { value: 'ABC商事' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(await screen.findByText('この操作を行う権限がありません')).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('ネットワークエラー時にネットワークエラーメッセージが表示される', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.startsWith('/api/v1/salespersons')) return mockSalespersonsFetch();
+      throw new Error('Network error');
+    });
+
+    render(<CustomerForm />);
+    fireEvent.change(screen.getByLabelText(/顧客名/), { target: { value: 'ABC商事' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(await screen.findByText(/ネットワークエラー/)).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('編集フォームで isActive チェックボックスがオフの場合、チェックが外れた状態で表示される', async () => {
+    render(
+      <CustomerForm
+        customer={{
+          id: 30,
+          name: 'ABC商事',
+          address: null,
+          phone: null,
+          salesRep: null,
+          isActive: false,
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText('有効')).not.toBeChecked();
+
+    // salespersons 取得の state 更新を待つ
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
     });

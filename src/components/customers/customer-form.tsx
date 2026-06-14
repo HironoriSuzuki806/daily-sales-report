@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -87,17 +88,24 @@ export function CustomerForm({ customer }: CustomerFormProps) {
   const phoneErrorId = useId();
   const salesRepErrorId = useId();
 
-  // 担当営業プルダウンの選択肢を取得（GET /api/v1/salespersons）
+  // 担当営業プルダウンの選択肢を取得（GET /api/v1/salespersons、全ページ取得）
   useEffect(() => {
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await fetch('/api/v1/salespersons?isActive=true&size=100', {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const body = (await res.json()) as { content: SalespersonOption[] };
-        setSalespersons(body.content.map((s) => ({ id: s.id, name: s.name })));
+        const allSalespersons: SalespersonOption[] = [];
+        let page = 0;
+        while (true) {
+          const res = await fetch(`/api/v1/salespersons?isActive=true&size=100&page=${page}`, {
+            signal: controller.signal,
+          });
+          if (!res.ok) break;
+          const body = (await res.json()) as { content: SalespersonOption[]; totalPages: number };
+          allSalespersons.push(...body.content.map((s) => ({ id: s.id, name: s.name })));
+          if (page >= body.totalPages - 1) break;
+          page++;
+        }
+        setSalespersons(allSalespersons);
       } catch (err) {
         if (!(err instanceof DOMException && err.name === 'AbortError')) {
           console.error('[customer-form] failed to load salespersons:', err);
@@ -147,7 +155,6 @@ export function CustomerForm({ customer }: CustomerFormProps) {
 
         if (res.ok) {
           router.push('/customers');
-          router.refresh();
           return;
         }
 
@@ -274,14 +281,13 @@ export function CustomerForm({ customer }: CustomerFormProps) {
         <label htmlFor={salesRepId} className="text-sm font-medium">
           担当営業
         </label>
-        <select
+        <NativeSelect
           id={salesRepId}
           name="salesRepId"
           defaultValue={customer?.salesRep ? String(customer.salesRep.id) : ''}
           disabled={isPending}
           aria-invalid={!!fieldErrors.salesRepId}
           aria-describedby={fieldErrors.salesRepId ? salesRepErrorId : undefined}
-          className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">（未選択）</option>
           {salespersons.map((s) => (
@@ -289,7 +295,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
               {s.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         {fieldErrors.salesRepId && (
           <p id={salesRepErrorId} className="text-destructive text-xs">
             {fieldErrors.salesRepId}

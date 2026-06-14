@@ -5,10 +5,7 @@ import { getSessionUser } from '@/lib/session';
 
 export default async function CustomerNewPage() {
   const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    redirect('/login');
-  }
-  if (sessionUser.role !== 'ADMIN') {
+  if (sessionUser?.role !== 'ADMIN') {
     redirect('/home');
   }
 

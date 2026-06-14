@@ -6,10 +6,7 @@ import { getCustomer } from '@/services/customer.service';
 
 export default async function CustomerEditPage({ params }: { params: Promise<{ id: string }> }) {
   const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    redirect('/login');
-  }
-  if (sessionUser.role !== 'ADMIN') {
+  if (sessionUser?.role !== 'ADMIN') {
     redirect('/home');
   }
 
