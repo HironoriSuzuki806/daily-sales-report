@@ -185,15 +185,14 @@ export async function updateDepartment(
     await validateParentDepartment(input.parentDepartmentId, id);
   }
 
-  const data: Prisma.DepartmentUncheckedUpdateInput = {
-    name: input.name,
-    parentDepartmentId:
-      input.parentDepartmentId !== undefined && input.parentDepartmentId !== null
-        ? BigInt(input.parentDepartmentId)
-        : null,
-    managerId:
-      input.managerId !== undefined && input.managerId !== null ? BigInt(input.managerId) : null,
-  };
+  const data: Prisma.DepartmentUncheckedUpdateInput = { name: input.name };
+  if (input.parentDepartmentId !== undefined) {
+    data.parentDepartmentId =
+      input.parentDepartmentId !== null ? BigInt(input.parentDepartmentId) : null;
+  }
+  if (input.managerId !== undefined) {
+    data.managerId = input.managerId !== null ? BigInt(input.managerId) : null;
+  }
   if (input.isActive !== undefined) {
     data.isActive = input.isActive;
   }

@@ -312,6 +312,73 @@ describe('updateDepartment', () => {
     const calledData = mockDeptUpdate.mock.calls[0][0].data;
     expect('isActive' in calledData).toBe(false);
   });
+
+  it('parentDepartmentId 省略時は更新データに含めない（データロス防止）', async () => {
+    mockDeptFindUnique.mockResolvedValue({ id: BigInt(3) });
+    mockDeptUpdate.mockResolvedValue(
+      makeMockDepartment({
+        parentDepartmentId: null,
+        managerId: null,
+        parentDepartment: null,
+        manager: null,
+      })
+    );
+
+    await updateDepartment(3, { name: '東日本営業部' });
+
+    const calledData = mockDeptUpdate.mock.calls[0][0].data;
+    expect('parentDepartmentId' in calledData).toBe(false);
+  });
+
+  it('managerId 省略時は更新データに含めない（データロス防止）', async () => {
+    mockDeptFindUnique.mockResolvedValue({ id: BigInt(3) });
+    mockDeptUpdate.mockResolvedValue(
+      makeMockDepartment({
+        parentDepartmentId: null,
+        managerId: null,
+        parentDepartment: null,
+        manager: null,
+      })
+    );
+
+    await updateDepartment(3, { name: '東日本営業部' });
+
+    const calledData = mockDeptUpdate.mock.calls[0][0].data;
+    expect('managerId' in calledData).toBe(false);
+  });
+
+  it('parentDepartmentId を null で明示的に渡した場合は null をセットする', async () => {
+    mockDeptFindUnique.mockResolvedValue({ id: BigInt(3) });
+    mockDeptUpdate.mockResolvedValue(
+      makeMockDepartment({
+        parentDepartmentId: null,
+        parentDepartment: null,
+        managerId: BigInt(8),
+      })
+    );
+
+    await updateDepartment(3, { name: '東日本営業部', parentDepartmentId: null });
+
+    const calledData = mockDeptUpdate.mock.calls[0][0].data;
+    expect(calledData.parentDepartmentId).toBeNull();
+  });
+
+  it('managerId を null で明示的に渡した場合は null をセットする', async () => {
+    mockDeptFindUnique.mockResolvedValue({ id: BigInt(3) });
+    mockDeptUpdate.mockResolvedValue(
+      makeMockDepartment({
+        parentDepartmentId: BigInt(1),
+        parentDepartment: { id: BigInt(1), name: '営業本部' },
+        managerId: null,
+        manager: null,
+      })
+    );
+
+    await updateDepartment(3, { name: '東日本営業部', managerId: null });
+
+    const calledData = mockDeptUpdate.mock.calls[0][0].data;
+    expect(calledData.managerId).toBeNull();
+  });
 });
 
 describe('deleteDepartment', () => {
