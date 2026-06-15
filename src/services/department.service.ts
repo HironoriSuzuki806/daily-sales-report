@@ -51,8 +51,11 @@ function mapToResponse(d: DepartmentWithRelations): DepartmentResponse {
 // ─── Cycle detection ──────────────────────────────────────────────────────────
 
 async function wouldCreateCycle(departmentId: bigint, newParentId: bigint): Promise<boolean> {
+  const visited = new Set<bigint>();
   let current: bigint | null = newParentId;
   while (current !== null) {
+    if (visited.has(current)) break;
+    visited.add(current);
     if (current === departmentId) return true;
     const dept: { parentDepartmentId: bigint | null } | null = await prisma.department.findUnique({
       where: { id: current },
@@ -110,9 +113,9 @@ export async function getDepartment(id: number): Promise<DepartmentResponse> {
 }
 
 export async function createDepartment(input: DepartmentCreate): Promise<DepartmentResponse> {
-  if (input.parentDepartmentId !== undefined) {
+  if (input.parentDepartmentId !== undefined && input.parentDepartmentId !== null) {
     const parent = await prisma.department.findUnique({
-      where: { id: BigInt(input.parentDepartmentId) },
+      where: { id: BigInt(input.parentDepartmentId), isActive: true },
       select: { id: true },
     });
     if (!parent) {
@@ -120,9 +123,9 @@ export async function createDepartment(input: DepartmentCreate): Promise<Departm
     }
   }
 
-  if (input.managerId !== undefined) {
+  if (input.managerId !== undefined && input.managerId !== null) {
     const manager = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.managerId) },
+      where: { id: BigInt(input.managerId), isActive: true },
       select: { id: true },
     });
     if (!manager) {
@@ -133,8 +136,12 @@ export async function createDepartment(input: DepartmentCreate): Promise<Departm
   const department = await prisma.department.create({
     data: {
       name: input.name,
-      parentDepartmentId: input.parentDepartmentId ? BigInt(input.parentDepartmentId) : null,
-      managerId: input.managerId ? BigInt(input.managerId) : null,
+      parentDepartmentId:
+        input.parentDepartmentId !== undefined && input.parentDepartmentId !== null
+          ? BigInt(input.parentDepartmentId)
+          : null,
+      managerId:
+        input.managerId !== undefined && input.managerId !== null ? BigInt(input.managerId) : null,
       isActive: input.isActive,
     },
     include: departmentInclude,
@@ -161,7 +168,7 @@ export async function updateDepartment(
     }
 
     const parent = await prisma.department.findUnique({
-      where: { id: BigInt(input.parentDepartmentId) },
+      where: { id: BigInt(input.parentDepartmentId), isActive: true },
       select: { id: true },
     });
     if (!parent) {
@@ -176,7 +183,7 @@ export async function updateDepartment(
 
   if (input.managerId !== undefined && input.managerId !== null) {
     const manager = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.managerId) },
+      where: { id: BigInt(input.managerId), isActive: true },
       select: { id: true },
     });
     if (!manager) {

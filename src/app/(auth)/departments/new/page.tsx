@@ -41,7 +41,7 @@ export default async function NewDepartmentPage() {
           <DepartmentForm
             mode="new"
             departments={departments.map((d) => ({ id: d.id, name: d.name }))}
-            salespersons={(salespersons as { id: number; name: string }[]).map((s) => ({
+            salespersons={salespersons.map((s) => ({
               id: s.id,
               name: s.name,
             }))}

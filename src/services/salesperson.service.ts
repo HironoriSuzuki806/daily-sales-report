@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Prisma } from '@/generated/prisma/client';
 import { badRequest, conflict, notFound } from '@/lib/api';
-import { createPageResponse, PaginationQuery } from '@/lib/api/pagination';
+import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type {
@@ -50,7 +50,10 @@ function mapToResponse(s: SalespersonWithRelations): SalespersonResponse {
 
 // ─── Service functions ─────────────────────────────────────────────────────────
 
-export async function listSalespersons(query: SalespersonQuery, pagination: PaginationQuery) {
+export async function listSalespersons(
+  query: SalespersonQuery,
+  pagination: PaginationQuery
+): Promise<PageResponse<SalespersonResponse>> {
   const where: Prisma.SalespersonWhereInput = {};
 
   if (query.name !== undefined) {

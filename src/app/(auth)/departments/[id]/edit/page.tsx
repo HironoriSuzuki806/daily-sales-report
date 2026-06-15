@@ -68,7 +68,7 @@ export default async function EditDepartmentPage({ params }: EditDepartmentPageP
               isActive: department.isActive,
             }}
             departments={availableParents.map((d) => ({ id: d.id, name: d.name }))}
-            salespersons={(salespersons as { id: number; name: string }[]).map((s) => ({
+            salespersons={salespersons.map((s) => ({
               id: s.id,
               name: s.name,
             }))}
