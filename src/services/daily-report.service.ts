@@ -1,10 +1,21 @@
 import { Prisma } from '@/generated/prisma/client';
-import { conflict } from '@/lib/api';
+import { conflict, forbidden } from '@/lib/api';
+import type { AuthUser } from '@/lib/api';
+import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { formatDate, formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
-import type { CreateDailyReportInput } from '@/lib/schemas/daily-report.schema';
+import type { CreateDailyReportInput, DailyReportQuery } from '@/lib/schemas/daily-report.schema';
 
 // ─── Response types ────────────────────────────────────────────────────────────
+
+export interface DailyReportListItemResponse {
+  id: number;
+  reportDate: string;
+  salesperson: { id: number; name: string };
+  visitCount: number;
+  status: 'DRAFT' | 'SUBMITTED';
+  commentCount: number;
+}
 
 export interface VisitRecordResponse {
   id: number;
@@ -89,7 +100,111 @@ export function mapToDetailResponse(report: DailyReportWithRelations): DailyRepo
   };
 }
 
-// ─── Service function ──────────────────────────────────────────────────────────
+const dailyReportListInclude = {
+  salesperson: { select: { id: true, name: true } },
+  _count: { select: { visitRecords: true, comments: true } },
+} satisfies Prisma.DailyReportInclude;
+
+type DailyReportListItem = Prisma.DailyReportGetPayload<{
+  include: typeof dailyReportListInclude;
+}>;
+
+function mapToListItemResponse(report: DailyReportListItem): DailyReportListItemResponse {
+  return {
+    id: Number(report.id),
+    reportDate: formatDate(report.reportDate),
+    salesperson: {
+      id: Number(report.salesperson.id),
+      name: report.salesperson.name,
+    },
+    visitCount: report._count.visitRecords,
+    status: report.status,
+    commentCount: report._count.comments,
+  };
+}
+
+// ─── Service functions ─────────────────────────────────────────────────────────
+
+/**
+ * 権限に応じた日報の絞り込み条件を組み立てる。
+ * - SALES: 自分の日報のみ（salespersonId パラメータは無視）
+ * - MANAGER: salespersonId 指定時は所属部署メンバー（または本人）か確認。
+ *   未指定時は本人＋所属部署メンバーの日報
+ */
+async function buildScopeWhere(
+  user: AuthUser,
+  query: DailyReportQuery
+): Promise<Prisma.DailyReportWhereInput> {
+  if (user.role !== 'MANAGER') {
+    return { salespersonId: BigInt(user.id) };
+  }
+
+  if (query.salespersonId !== undefined) {
+    if (query.salespersonId === user.id) {
+      return { salespersonId: BigInt(user.id) };
+    }
+
+    const target = await prisma.salesperson.findUnique({
+      where: { id: BigInt(query.salespersonId) },
+      select: { departmentId: true },
+    });
+    const isDepartmentMember =
+      target !== null &&
+      target.departmentId !== null &&
+      user.departmentId !== null &&
+      Number(target.departmentId) === user.departmentId;
+
+    if (!isDepartmentMember) {
+      forbidden('指定された営業の日報を参照する権限がありません');
+    }
+    return { salespersonId: BigInt(query.salespersonId) };
+  }
+
+  if (user.departmentId === null) {
+    return { salespersonId: BigInt(user.id) };
+  }
+  return {
+    OR: [
+      { salespersonId: BigInt(user.id) },
+      { salesperson: { departmentId: BigInt(user.departmentId) } },
+    ],
+  };
+}
+
+export async function listDailyReports(
+  user: AuthUser,
+  query: DailyReportQuery,
+  pagination: PaginationQuery
+): Promise<PageResponse<DailyReportListItemResponse>> {
+  const where = await buildScopeWhere(user, query);
+
+  if (query.dateFrom !== undefined || query.dateTo !== undefined) {
+    const dateFilter: Prisma.DateTimeFilter<'DailyReport'> = {};
+    if (query.dateFrom !== undefined) {
+      dateFilter.gte = new Date(query.dateFrom);
+    }
+    if (query.dateTo !== undefined) {
+      dateFilter.lte = new Date(query.dateTo);
+    }
+    where.reportDate = dateFilter;
+  }
+  if (query.status !== undefined) {
+    where.status = query.status;
+  }
+
+  const [total, reports] = await prisma.$transaction([
+    prisma.dailyReport.count({ where }),
+    prisma.dailyReport.findMany({
+      where,
+      include: dailyReportListInclude,
+      skip: pagination.page * pagination.size,
+      take: pagination.size,
+      orderBy: [{ reportDate: 'desc' }, { id: 'desc' }],
+    }),
+  ]);
+
+  return createPageResponse(reports.map(mapToListItemResponse), total, pagination);
+}
 
 export async function createDailyReport(
   salespersonId: number,
