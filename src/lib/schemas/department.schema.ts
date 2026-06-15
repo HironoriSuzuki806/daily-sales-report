@@ -30,6 +30,8 @@ export const DepartmentQuerySchema = z.object({
     }),
 });
 
+// PUT は API仕様書 §7.3 に基づく全フィールド送信（フルリプレイス）を前提とするため
+// name は必須のまま。isActive のみ optional に変更（POST 時の default: true を外す）。
 export const DepartmentUpdateSchema = DepartmentInputSchema.extend({
   isActive: z.boolean().optional(),
 });
