@@ -84,6 +84,9 @@ async function validateParentDepartment(
   if (selfId === null) return;
 
   // 4. 新しい親から祖先を辿り、自部署に到達したら循環
+  // ※ isActive フィルタを掛けないのは意図的。無効化済み部署が祖先チェーンに残っている場合も
+  //   循環を検出する必要があるため（isActive でフィルタすると A→B(inactive)→A のような
+  //   サイクルを見逃すバグになる）。
   const visited = new Set<number>([parentDepartmentId]);
   let currentParentId = parent.parentDepartmentId;
   while (currentParentId !== null) {
