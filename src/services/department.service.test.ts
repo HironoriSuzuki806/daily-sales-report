@@ -169,6 +169,22 @@ describe('createDepartment', () => {
     expect(mockDeptCreate).not.toHaveBeenCalled();
   });
 
+  it('論理削除済み営業（isActive=false）を部署長に指定 → 400', async () => {
+    // isActive: true でフィルタされるため null が返る想定
+    mockSalespersonFindUnique.mockResolvedValue(null);
+
+    await expect(
+      createDepartment({ name: '東日本営業部', managerId: 8, isActive: true })
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockDeptCreate).not.toHaveBeenCalled();
+    // isActive: true のフィルタが where 条件に含まれることを確認
+    expect(mockSalespersonFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isActive: true }),
+      })
+    );
+  });
+
   it('存在しない上位部署を指定 → 400', async () => {
     mockDeptFindUnique.mockResolvedValue(null);
 
@@ -176,6 +192,22 @@ describe('createDepartment', () => {
       createDepartment({ name: '東日本営業部', parentDepartmentId: 999, isActive: true })
     ).rejects.toMatchObject({ status: 400 });
     expect(mockDeptCreate).not.toHaveBeenCalled();
+  });
+
+  it('論理削除済み部署（isActive=false）を上位部署に指定 → 400', async () => {
+    // isActive: true でフィルタされるため null が返る想定
+    mockDeptFindUnique.mockResolvedValue(null);
+
+    await expect(
+      createDepartment({ name: '東日本営業部', parentDepartmentId: 1, isActive: true })
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockDeptCreate).not.toHaveBeenCalled();
+    // isActive: true のフィルタが where 条件に含まれることを確認
+    expect(mockDeptFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isActive: true }),
+      })
+    );
   });
 
   it('上位部署を指定して登録できる', async () => {
@@ -231,6 +263,40 @@ describe('updateDepartment', () => {
       updateDepartment(3, { name: '東日本営業部', parentDepartmentId: 3 })
     ).rejects.toMatchObject({ status: 400 });
     expect(mockDeptUpdate).not.toHaveBeenCalled();
+  });
+
+  it('論理削除済み営業（isActive=false）を部署長に指定 → 400', async () => {
+    // 既存部署は存在する
+    mockDeptFindUnique.mockResolvedValue({ id: BigInt(3) });
+    // isActive: true でフィルタされるため null が返る想定
+    mockSalespersonFindUnique.mockResolvedValue(null);
+
+    await expect(updateDepartment(3, { name: '東日本営業部', managerId: 8 })).rejects.toMatchObject(
+      { status: 400 }
+    );
+    expect(mockDeptUpdate).not.toHaveBeenCalled();
+    // isActive: true のフィルタが where 条件に含まれることを確認
+    expect(mockSalespersonFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isActive: true }),
+      })
+    );
+  });
+
+  it('論理削除済み部署（isActive=false）を上位部署に指定 → 400', async () => {
+    // 1回目: 既存部署の存在確認 / 2回目: 上位部署の存在確認（isActive: true で null が返る）
+    mockDeptFindUnique.mockResolvedValueOnce({ id: BigInt(3) }).mockResolvedValueOnce(null);
+
+    await expect(
+      updateDepartment(3, { name: '東日本営業部', parentDepartmentId: 1 })
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockDeptUpdate).not.toHaveBeenCalled();
+    // 2回目の呼び出しに isActive: true フィルタが含まれることを確認
+    expect(mockDeptFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isActive: true }),
+      })
+    );
   });
 
   it('TC-MST-023: 階層の循環設定（A→B→A） → 400', async () => {

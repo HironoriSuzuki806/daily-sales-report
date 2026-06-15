@@ -50,10 +50,10 @@ function mapToResponse(d: DepartmentWithRelations): DepartmentResponse {
 
 // ─── Validation helpers ────────────────────────────────────────────────────────
 
-/** managerId が営業マスタに存在することを確認する */
+/** managerId が有効な営業マスタに存在することを確認する（論理削除済みは不可） */
 async function validateManagerExists(managerId: number): Promise<void> {
   const manager = await prisma.salesperson.findUnique({
-    where: { id: BigInt(managerId) },
+    where: { id: BigInt(managerId), isActive: true },
     select: { id: true },
   });
   if (!manager) {
@@ -66,21 +66,24 @@ async function validateParentDepartment(
   parentDepartmentId: number,
   selfId: number | null
 ): Promise<void> {
+  // 1. 自己参照チェック（更新時のみ。新規作成時は selfId=null のためスキップ）
   if (selfId !== null && parentDepartmentId === selfId) {
     badRequest('上位部署に自部署は指定できません');
   }
 
+  // 2. 上位部署の存在チェック（論理削除済みは不可）
   const parent = await prisma.department.findUnique({
-    where: { id: BigInt(parentDepartmentId) },
+    where: { id: BigInt(parentDepartmentId), isActive: true },
     select: { id: true, parentDepartmentId: true },
   });
   if (!parent) {
     badRequest('指定された上位部署が存在しません');
   }
 
-  // 新しい親から祖先を辿り、自部署に到達したら循環
+  // 3. 新規作成時は循環チェック不要（自部署が存在しないため循環し得ない）
   if (selfId === null) return;
 
+  // 4. 新しい親から祖先を辿り、自部署に到達したら循環
   const visited = new Set<number>([parentDepartmentId]);
   let currentParentId = parent.parentDepartmentId;
   while (currentParentId !== null) {
