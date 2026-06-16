@@ -24,10 +24,8 @@ export const DepartmentQuerySchema = z.object({
       error: 'isActive は true または false を指定してください',
     })
     .optional()
-    .transform((v) => {
-      if (v === undefined) return undefined;
-      return v === 'true';
-    }),
+    .transform((v) => (v === undefined ? undefined : v === 'true'))
+    .pipe(z.boolean().optional()),
 });
 
 // PUT は API仕様書 §7.3 に基づく全フィールド送信（フルリプレイス）を前提とするため

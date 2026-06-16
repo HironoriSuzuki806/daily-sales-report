@@ -1,6 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { badRequest, notFound } from '@/lib/api';
-import { createPageResponse, PaginationQuery } from '@/lib/api/pagination';
+import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type {
@@ -107,7 +107,10 @@ async function validateParentDepartment(
 
 // ─── Service functions ─────────────────────────────────────────────────────────
 
-export async function listDepartments(query: DepartmentQuery, pagination: PaginationQuery) {
+export async function listDepartments(
+  query: DepartmentQuery,
+  pagination: PaginationQuery
+): Promise<PageResponse<DepartmentResponse>> {
   const where: Prisma.DepartmentWhereInput = {};
 
   if (query.name !== undefined) {
