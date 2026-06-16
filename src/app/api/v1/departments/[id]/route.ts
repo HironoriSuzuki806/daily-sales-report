@@ -20,6 +20,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context?: Route
   }
 
   const result = await getDepartment(numId);
+
   return NextResponse.json(result);
 });
 

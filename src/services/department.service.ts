@@ -4,7 +4,7 @@ import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pag
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type {
-  DepartmentCreate,
+  DepartmentInput,
   DepartmentUpdate,
   DepartmentQuery,
 } from '@/lib/schemas/department.schema';
@@ -28,11 +28,11 @@ const departmentInclude = {
   manager: { select: { id: true, name: true } },
 } satisfies Prisma.DepartmentInclude;
 
+// ─── Mapper ───────────────────────────────────────────────────────────────────
+
 type DepartmentWithRelations = Prisma.DepartmentGetPayload<{
   include: typeof departmentInclude;
 }>;
-
-// ─── Mapper ───────────────────────────────────────────────────────────────────
 
 function mapToResponse(d: DepartmentWithRelations): DepartmentResponse {
   return {
@@ -48,23 +48,61 @@ function mapToResponse(d: DepartmentWithRelations): DepartmentResponse {
   };
 }
 
-// ─── Cycle detection ──────────────────────────────────────────────────────────
+// ─── Validation helpers ────────────────────────────────────────────────────────
 
-async function wouldCreateCycle(departmentId: bigint, newParentId: bigint): Promise<boolean> {
-  const visited = new Set<bigint>();
-  let current: bigint | null = newParentId;
-  while (current !== null) {
-    if (visited.has(current)) break;
-    visited.add(current);
-    if (current === departmentId) return true;
-    const dept: { parentDepartmentId: bigint | null } | null = await prisma.department.findUnique({
-      where: { id: current },
+/** managerId が有効な営業マスタに存在することを確認する（論理削除済みは不可） */
+async function validateManagerExists(managerId: number): Promise<void> {
+  const manager = await prisma.salesperson.findUnique({
+    where: { id: BigInt(managerId), isActive: true },
+    select: { id: true },
+  });
+  if (!manager) {
+    badRequest('指定された部署長が存在しません');
+  }
+}
+
+/** parentDepartmentId の存在チェックと、自部署指定・循環チェックを行う */
+async function validateParentDepartment(
+  parentDepartmentId: number,
+  selfId: number | null
+): Promise<void> {
+  // 1. 自己参照チェック（更新時のみ。新規作成時は selfId=null のためスキップ）
+  if (selfId !== null && parentDepartmentId === selfId) {
+    badRequest('上位部署に自部署は指定できません');
+  }
+
+  // 2. 上位部署の存在チェック（論理削除済みは不可）
+  const parent = await prisma.department.findUnique({
+    where: { id: BigInt(parentDepartmentId), isActive: true },
+    select: { id: true, parentDepartmentId: true },
+  });
+  if (!parent) {
+    badRequest('指定された上位部署が存在しません');
+  }
+
+  // 3. 新規作成時は循環チェック不要（自部署が存在しないため循環し得ない）
+  if (selfId === null) return;
+
+  // 4. 新しい親から祖先を辿り、自部署に到達したら循環
+  // ※ isActive フィルタを掛けないのは意図的。無効化済み部署が祖先チェーンに残っている場合も
+  //   循環を検出する必要があるため（isActive でフィルタすると A→B(inactive)→A のような
+  //   サイクルを見逃すバグになる）。
+  const visited = new Set<number>([parentDepartmentId]);
+  let currentParentId = parent.parentDepartmentId;
+  while (currentParentId !== null) {
+    const currentId = Number(currentParentId);
+    if (currentId === selfId) {
+      badRequest('部署の階層が循環しています');
+    }
+    if (visited.has(currentId)) break; // 既存データの循環で無限ループしないよう防御
+    visited.add(currentId);
+
+    const ancestor = await prisma.department.findUnique({
+      where: { id: currentParentId },
       select: { parentDepartmentId: true },
     });
-    if (!dept) break;
-    current = dept.parentDepartmentId;
+    currentParentId = ancestor?.parentDepartmentId ?? null;
   }
-  return false;
 }
 
 // ─── Service functions ─────────────────────────────────────────────────────────
@@ -112,25 +150,12 @@ export async function getDepartment(id: number): Promise<DepartmentResponse> {
   return mapToResponse(department);
 }
 
-export async function createDepartment(input: DepartmentCreate): Promise<DepartmentResponse> {
-  if (input.parentDepartmentId !== undefined && input.parentDepartmentId !== null) {
-    const parent = await prisma.department.findUnique({
-      where: { id: BigInt(input.parentDepartmentId), isActive: true },
-      select: { id: true },
-    });
-    if (!parent) {
-      badRequest('指定された上位部署が存在しません');
-    }
-  }
-
+export async function createDepartment(input: DepartmentInput): Promise<DepartmentResponse> {
   if (input.managerId !== undefined && input.managerId !== null) {
-    const manager = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.managerId), isActive: true },
-      select: { id: true },
-    });
-    if (!manager) {
-      badRequest('指定された部署長が存在しません');
-    }
+    await validateManagerExists(input.managerId);
+  }
+  if (input.parentDepartmentId !== undefined && input.parentDepartmentId !== null) {
+    await validateParentDepartment(input.parentDepartmentId, null);
   }
 
   const department = await prisma.department.create({
@@ -162,53 +187,28 @@ export async function updateDepartment(
     notFound('部署が見つかりません');
   }
 
+  if (input.managerId !== undefined && input.managerId !== null) {
+    await validateManagerExists(input.managerId);
+  }
   if (input.parentDepartmentId !== undefined && input.parentDepartmentId !== null) {
-    if (BigInt(input.parentDepartmentId) === BigInt(id)) {
-      badRequest('自部署を上位部署に指定することはできません');
-    }
-
-    const parent = await prisma.department.findUnique({
-      where: { id: BigInt(input.parentDepartmentId), isActive: true },
-      select: { id: true },
-    });
-    if (!parent) {
-      badRequest('指定された上位部署が存在しません');
-    }
-
-    const cyclic = await wouldCreateCycle(BigInt(id), BigInt(input.parentDepartmentId));
-    if (cyclic) {
-      badRequest('上位部署の設定が循環しています');
-    }
+    await validateParentDepartment(input.parentDepartmentId, id);
   }
 
-  if (input.managerId !== undefined && input.managerId !== null) {
-    const manager = await prisma.salesperson.findUnique({
-      where: { id: BigInt(input.managerId), isActive: true },
-      select: { id: true },
-    });
-    if (!manager) {
-      badRequest('指定された部署長が存在しません');
-    }
+  const data: Prisma.DepartmentUncheckedUpdateInput = { name: input.name };
+  if (input.parentDepartmentId !== undefined) {
+    data.parentDepartmentId =
+      input.parentDepartmentId !== null ? BigInt(input.parentDepartmentId) : null;
+  }
+  if (input.managerId !== undefined) {
+    data.managerId = input.managerId !== null ? BigInt(input.managerId) : null;
+  }
+  if (input.isActive !== undefined) {
+    data.isActive = input.isActive;
   }
 
   const department = await prisma.department.update({
     where: { id: BigInt(id) },
-    data: {
-      name: input.name,
-      parentDepartmentId:
-        input.parentDepartmentId !== undefined
-          ? input.parentDepartmentId !== null
-            ? BigInt(input.parentDepartmentId)
-            : null
-          : undefined,
-      managerId:
-        input.managerId !== undefined
-          ? input.managerId !== null
-            ? BigInt(input.managerId)
-            : null
-          : undefined,
-      ...(input.isActive !== undefined && { isActive: input.isActive }),
-    },
+    data,
     include: departmentInclude,
   });
 
@@ -216,16 +216,15 @@ export async function updateDepartment(
 }
 
 export async function deleteDepartment(id: number): Promise<void> {
-  const existing = await prisma.department.findUnique({
-    where: { id: BigInt(id) },
-    select: { id: true },
-  });
-  if (!existing) {
-    notFound('部署が見つかりません');
+  try {
+    await prisma.department.update({
+      where: { id: BigInt(id) },
+      data: { isActive: false },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      notFound('部署が見つかりません');
+    }
+    throw err;
   }
-
-  await prisma.department.update({
-    where: { id: BigInt(id) },
-    data: { isActive: false },
-  });
 }

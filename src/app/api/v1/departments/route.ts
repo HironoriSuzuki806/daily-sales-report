@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, withErrorHandler, forbidden } from '@/lib/api';
 import { HttpStatus } from '@/lib/api/http-status';
 import { paginationQuerySchema } from '@/lib/api/pagination';
-import { DepartmentCreateSchema, DepartmentQuerySchema } from '@/lib/schemas/department.schema';
+import { DepartmentInputSchema, DepartmentQuerySchema } from '@/lib/schemas/department.schema';
 import { listDepartments, createDepartment } from '@/services/department.service';
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -14,6 +14,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const pagination = paginationQuerySchema.parse(searchParams);
 
   const result = await listDepartments(query, pagination);
+
   return NextResponse.json(result);
 });
 
@@ -23,7 +24,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     forbidden('この操作を行う権限がありません');
   }
 
-  const body = DepartmentCreateSchema.parse(await request.json());
+  const body = DepartmentInputSchema.parse(await request.json());
   const result = await createDepartment(body);
 
   return NextResponse.json(result, { status: HttpStatus.CREATED });
