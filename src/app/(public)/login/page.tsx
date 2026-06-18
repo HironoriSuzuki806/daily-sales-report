@@ -116,7 +116,12 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="space-y-4"
+          aria-describedby={formError ? formErrorId : undefined}
+        >
           <div className="space-y-1">
             <label htmlFor={emailId} className="text-sm font-medium">
               メールアドレス

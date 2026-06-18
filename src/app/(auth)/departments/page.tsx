@@ -130,27 +130,25 @@ function DepartmentsTable({ departments }: { departments: DepartmentResponse[] }
           <th scope="col" className="px-3 py-2 font-medium">
             有効フラグ
           </th>
-          <th scope="col" className="px-3 py-2 font-medium" />
         </tr>
       </thead>
       <tbody>
         {departments.map((dept) => (
           <tr key={dept.id} className="border-border hover:bg-muted/50 relative border-b">
-            <td className="px-3 py-2 font-medium">{dept.name}</td>
+            <td className="px-3 py-2 font-medium">
+              <Link
+                href={`/departments/${dept.id}/edit`}
+                className="focus-visible:ring-ring rounded after:absolute after:inset-0 hover:underline focus-visible:ring-2 focus-visible:outline-none"
+              >
+                {dept.name}
+              </Link>
+            </td>
             <td className="text-muted-foreground px-3 py-2">
               {dept.parentDepartment?.name ?? '—'}
             </td>
             <td className="text-muted-foreground px-3 py-2">{dept.manager?.name ?? '—'}</td>
             <td className="px-3 py-2">
               <ActiveBadge isActive={dept.isActive} />
-            </td>
-            <td className="px-3 py-2">
-              <Link
-                href={`/departments/${dept.id}/edit`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-              >
-                編集
-              </Link>
             </td>
           </tr>
         ))}
