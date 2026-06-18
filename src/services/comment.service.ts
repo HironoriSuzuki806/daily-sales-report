@@ -12,7 +12,7 @@ export interface CommentResponse {
 export async function listComments(
   dailyReportId: number,
   requesterId: number,
-  role: string,
+  role: 'SALES' | 'MANAGER' | 'ADMIN',
   departmentId: number | null
 ): Promise<CommentResponse[]> {
   const report = await prisma.dailyReport.findUnique({
