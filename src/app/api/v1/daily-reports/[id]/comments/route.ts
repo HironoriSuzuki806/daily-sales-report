@@ -34,6 +34,6 @@ export const POST = withErrorHandler(async (request: NextRequest, context) => {
   if (isNaN(reportId)) badRequest('IDは整数で指定してください');
 
   const body = CommentInputSchema.parse(await request.json());
-  const result = await createComment(reportId, user.id, body.content);
+  const result = await createComment(reportId, user.id, user.departmentId, body.content);
   return NextResponse.json(result, { status: HttpStatus.CREATED });
 });

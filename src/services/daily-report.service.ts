@@ -123,7 +123,10 @@ export async function listDailyReports(
 
   if (role === 'SALES') {
     where.salespersonId = BigInt(requesterId);
-  } else if (role === 'MANAGER' && departmentId !== null) {
+  } else if (role === 'MANAGER') {
+    if (departmentId === null) {
+      return createPageResponse([], 0, pagination);
+    }
     where.salesperson = { departmentId: BigInt(departmentId) };
     if (filters.salespersonId) {
       where.salespersonId = BigInt(filters.salespersonId);
@@ -141,7 +144,7 @@ export async function listDailyReports(
     where.status = filters.status;
   }
 
-  const [total, reports] = await prisma.$transaction([
+  const [total, reports] = await Promise.all([
     prisma.dailyReport.count({ where }),
     prisma.dailyReport.findMany({
       where,
@@ -156,16 +159,7 @@ export async function listDailyReports(
     }),
   ]);
 
-  const content: DailyReportSummaryResponse[] = (
-    reports as Array<{
-      id: bigint;
-      reportDate: Date;
-      status: 'DRAFT' | 'SUBMITTED';
-      salesperson: { id: bigint; name: string };
-      visitRecords: unknown[];
-      comments: unknown[];
-    }>
-  ).map((report) => ({
+  const content: DailyReportSummaryResponse[] = reports.map((report) => ({
     id: Number(report.id),
     reportDate: formatDate(report.reportDate),
     salesperson: { id: Number(report.salesperson.id), name: report.salesperson.name },
@@ -174,7 +168,7 @@ export async function listDailyReports(
     status: report.status,
   }));
 
-  return createPageResponse(content, total as number, pagination);
+  return createPageResponse(content, total, pagination);
 }
 
 export async function getDailyReport(
@@ -214,34 +208,44 @@ export async function updateDailyReport(
 ): Promise<DailyReportDetailResponse> {
   const existing = await prisma.dailyReport.findUnique({
     where: { id: BigInt(id) },
-    select: { salespersonId: true },
+    select: { salespersonId: true, status: true },
   });
 
   if (!existing) notFound('日報が見つかりません');
   if (Number(existing.salespersonId) !== requesterId) {
     forbidden('この日報を更新する権限がありません');
   }
+  if (existing.status === 'SUBMITTED') {
+    badRequest('提出済みの日報は更新できません');
+  }
 
-  const updated = await prisma.dailyReport.update({
-    where: { id: BigInt(id) },
-    data: {
-      reportDate: new Date(input.reportDate),
-      problem: input.problem ?? null,
-      plan: input.plan ?? null,
-      visitRecords: {
-        deleteMany: {},
-        create: input.visitRecords.map((vr) => ({
-          customerId: vr.customerId ? BigInt(vr.customerId) : null,
-          visitTime: vr.visitTime ?? null,
-          visitContent: vr.visitContent ?? null,
-          sortOrder: vr.sortOrder,
-        })),
+  try {
+    const updated = await prisma.dailyReport.update({
+      where: { id: BigInt(id) },
+      data: {
+        reportDate: new Date(input.reportDate),
+        problem: input.problem ?? null,
+        plan: input.plan ?? null,
+        visitRecords: {
+          deleteMany: {},
+          create: input.visitRecords.map((vr) => ({
+            customerId: vr.customerId ? BigInt(vr.customerId) : null,
+            visitTime: vr.visitTime ?? null,
+            visitContent: vr.visitContent ?? null,
+            sortOrder: vr.sortOrder,
+          })),
+        },
       },
-    },
-    include: dailyReportInclude,
-  });
+      include: dailyReportInclude,
+    });
 
-  return mapToDetailResponse(updated);
+    return mapToDetailResponse(updated);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      conflict('同一日の日報が既に存在します');
+    }
+    throw err;
+  }
 }
 
 export async function deleteDailyReport(id: number, requesterId: number): Promise<void> {
@@ -273,6 +277,9 @@ export async function submitDailyReport(
   if (!report) notFound('日報が見つかりません');
   if (Number(report.salespersonId) !== requesterId) {
     forbidden('この日報を提出する権限がありません');
+  }
+  if (report.status === 'SUBMITTED') {
+    badRequest('この日報は既に提出済みです');
   }
 
   if (report.visitRecords.length === 0) {

@@ -124,7 +124,7 @@ describe('createComment', () => {
     mockReportFindUnique.mockResolvedValue(makeMockReport(BigInt(12), BigInt(3)));
     mockCommentCreate.mockResolvedValue(makeMockComment());
 
-    const result = await createComment(1001, 8, 'コメント内容');
+    const result = await createComment(1001, 8, 3, 'コメント内容');
 
     expect(result.id).toBe(9001);
     expect(result.commenter.id).toBe(8);
@@ -140,10 +140,25 @@ describe('createComment', () => {
     );
   });
 
+  it('他部署MANAGERがコメントを投稿 → 403', async () => {
+    mockReportFindUnique.mockResolvedValue(makeMockReport(BigInt(12), BigInt(3)));
+
+    const { ApiError } = await import('@/lib/api');
+    await expect(createComment(1001, 99, 5, 'コメント')).rejects.toThrow(ApiError);
+    expect(mockCommentCreate).not.toHaveBeenCalled();
+  });
+
+  it('commenterDepartmentId が null のMANAGERがコメントを投稿 → 403', async () => {
+    mockReportFindUnique.mockResolvedValue(makeMockReport(BigInt(12), BigInt(3)));
+
+    await expect(createComment(1001, 99, null, 'コメント')).rejects.toMatchObject({ status: 403 });
+    expect(mockCommentCreate).not.toHaveBeenCalled();
+  });
+
   it('存在しない日報へのコメント → 404', async () => {
     mockReportFindUnique.mockResolvedValue(null);
 
-    await expect(createComment(9999, 8, 'コメント')).rejects.toMatchObject({ status: 404 });
+    await expect(createComment(9999, 8, 3, 'コメント')).rejects.toMatchObject({ status: 404 });
     expect(mockCommentCreate).not.toHaveBeenCalled();
   });
 });

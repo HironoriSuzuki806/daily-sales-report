@@ -55,14 +55,23 @@ export async function listComments(
 export async function createComment(
   dailyReportId: number,
   commenterId: number,
+  commenterDepartmentId: number | null,
   content: string
 ): Promise<CommentResponse> {
   const report = await prisma.dailyReport.findUnique({
     where: { id: BigInt(dailyReportId) },
-    select: { id: true },
+    include: { salesperson: { select: { departmentId: true } } },
   });
 
   if (!report) notFound('日報が見つかりません');
+
+  if (
+    report.salesperson.departmentId === null ||
+    commenterDepartmentId === null ||
+    Number(report.salesperson.departmentId) !== commenterDepartmentId
+  ) {
+    forbidden('この日報にコメントする権限がありません');
+  }
 
   const comment = await prisma.comment.create({
     data: {

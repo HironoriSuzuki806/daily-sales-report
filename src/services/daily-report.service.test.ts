@@ -47,7 +47,7 @@ function makeMockReport(overrides = {}) {
     submittedAt: null,
     createdAt: now,
     updatedAt: now,
-    salesperson: { id: BigInt(12), name: '山田太郎' },
+    salesperson: { id: BigInt(12), name: '山田太郎', departmentId: BigInt(3) },
     visitRecords: [],
     comments: [],
     ...overrides,
@@ -187,7 +187,8 @@ describe('listDailyReports', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('TC-LST-001: SALESロールは自分の日報のみ返す', async () => {
-    mockTransaction.mockResolvedValue([1, [makeMockReport()]]);
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue([makeMockReport()]);
 
     const result = await listDailyReports(12, 'SALES', 3, {}, { page: 0, size: 20 });
 
@@ -198,8 +199,40 @@ describe('listDailyReports', () => {
     expect(result.content[0].commentCount).toBeDefined();
   });
 
+  it('TC-LST-002: MANAGERが salespersonId フィルタで部署メンバーの日報を取得できる', async () => {
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue([makeMockReport()]);
+
+    const result = await listDailyReports(
+      8,
+      'MANAGER',
+      3,
+      { salespersonId: 12 },
+      { page: 0, size: 20 }
+    );
+
+    expect(result.content[0].id).toBe(1001);
+    expect(mockCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          salespersonId: BigInt(12),
+        }),
+      })
+    );
+  });
+
+  it('MANAGERの departmentId が null の場合は空リストを返す', async () => {
+    const result = await listDailyReports(8, 'MANAGER', null, {}, { page: 0, size: 20 });
+
+    expect(result.content).toHaveLength(0);
+    expect(result.totalElements).toBe(0);
+    expect(mockCount).not.toHaveBeenCalled();
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
   it('TC-LST-003: dateFrom/dateTo で期間絞り込みができる', async () => {
-    mockTransaction.mockResolvedValue([1, [makeMockReport()]]);
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue([makeMockReport()]);
 
     const result = await listDailyReports(
       12,
@@ -214,7 +247,8 @@ describe('listDailyReports', () => {
 
   it('TC-LST-004: status=SUBMITTED で絞り込みができる', async () => {
     const submittedReport = makeMockReport({ status: 'SUBMITTED' as const });
-    mockTransaction.mockResolvedValue([1, [submittedReport]]);
+    mockCount.mockResolvedValue(1);
+    mockFindMany.mockResolvedValue([submittedReport]);
 
     const result = await listDailyReports(
       12,
@@ -229,7 +263,8 @@ describe('listDailyReports', () => {
 
   it('TC-LST-005: 21件以上でページング結果が正しい（2ページ目）', async () => {
     const reports = Array.from({ length: 1 }, () => makeMockReport());
-    mockTransaction.mockResolvedValue([21, reports]);
+    mockCount.mockResolvedValue(21);
+    mockFindMany.mockResolvedValue(reports);
 
     const result = await listDailyReports(12, 'SALES', 3, {}, { page: 1, size: 20 });
 
@@ -349,6 +384,19 @@ describe('updateDailyReport', () => {
     expect(result.id).toBe(1001);
   });
 
+  it('提出済み日報の更新 → 400', async () => {
+    const submittedReport = makeMockReport({
+      salespersonId: BigInt(12),
+      status: 'SUBMITTED' as const,
+    });
+    mockFindUnique.mockResolvedValue(submittedReport);
+
+    await expect(
+      updateDailyReport(1001, 12, { reportDate: '2026-06-04', visitRecords: [] })
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
   it('TC-RPT-009: 他人の日報更新 → 403', async () => {
     const otherPersonReport = makeMockReport({ salespersonId: BigInt(15) });
     mockFindUnique.mockResolvedValue(otherPersonReport);
@@ -445,6 +493,30 @@ describe('submitDailyReport', () => {
         data: expect.objectContaining({ status: 'SUBMITTED' }),
       })
     );
+  });
+
+  it('既に提出済みの日報を再提出 → 400', async () => {
+    const submittedReport = makeMockReport({
+      status: 'SUBMITTED' as const,
+      salespersonId: BigInt(12),
+      visitRecords: [
+        {
+          id: BigInt(5001),
+          dailyReportId: BigInt(1001),
+          customerId: BigInt(30),
+          visitContent: '提案',
+          visitTime: null,
+          sortOrder: 1,
+          createdAt: now,
+          updatedAt: now,
+          customer: { id: BigInt(30), name: 'ABC商事' },
+        },
+      ],
+    });
+    mockFindUnique.mockResolvedValue(submittedReport);
+
+    await expect(submitDailyReport(1001, 12)).rejects.toMatchObject({ status: 400 });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('TC-SUB-002: 訪問記録0件で提出 → 400', async () => {

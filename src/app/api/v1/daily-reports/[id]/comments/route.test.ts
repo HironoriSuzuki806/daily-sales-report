@@ -176,7 +176,7 @@ describe('POST /api/v1/daily-reports/[id]/comments', () => {
     expect(body.id).toBe(9001);
     expect(body.commenter).toEqual({ id: 8, name: '佐藤部長' });
     expect(body.content).toBe('コメント内容');
-    expect(mockCreateComment).toHaveBeenCalledWith(1001, 8, 'コメント内容');
+    expect(mockCreateComment).toHaveBeenCalledWith(1001, 8, 3, 'コメント内容');
   });
 
   it('TC-CMT-003: SALES のコメント投稿 → 403', async () => {
@@ -203,7 +203,7 @@ describe('POST /api/v1/daily-reports/[id]/comments', () => {
     const res = await POST(makePostRequest({ content: longContent }), makeContext());
 
     expect(res.status).toBe(201);
-    expect(mockCreateComment).toHaveBeenCalledWith(1001, 8, longContent);
+    expect(mockCreateComment).toHaveBeenCalledWith(1001, 8, 3, longContent);
   });
 
   it('TC-CMT-005b: 1001文字で投稿 → 400', async () => {
