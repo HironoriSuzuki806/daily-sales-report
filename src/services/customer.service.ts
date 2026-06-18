@@ -57,7 +57,7 @@ export async function listCustomers(
   const where: Prisma.CustomerWhereInput = {};
 
   if (query.name !== undefined) {
-    where.name = { contains: query.name };
+    where.name = { contains: query.name, mode: 'insensitive' };
   }
   if (query.salesRepId !== undefined) {
     where.salesRepId = BigInt(query.salesRepId);

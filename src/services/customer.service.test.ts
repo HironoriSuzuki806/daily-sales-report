@@ -50,7 +50,7 @@ describe('TC-MST-005: listCustomers - 部分一致検索', () => {
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ name: { contains: 'ABC' } }),
+        where: expect.objectContaining({ name: { contains: 'ABC', mode: 'insensitive' } }),
       })
     );
     expect(result.content[0].name).toBe('ABC商事');
