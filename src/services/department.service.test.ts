@@ -27,6 +27,7 @@ vi.mock('@/lib/prisma', () => ({
 
 import { prisma } from '@/lib/prisma';
 const mockDeptFindUnique = prisma.department.findUnique as ReturnType<typeof vi.fn>;
+const mockDeptFindMany = prisma.department.findMany as ReturnType<typeof vi.fn>;
 const mockDeptCreate = prisma.department.create as ReturnType<typeof vi.fn>;
 const mockDeptUpdate = prisma.department.update as ReturnType<typeof vi.fn>;
 const mockSalespersonFindUnique = prisma.salesperson.findUnique as ReturnType<typeof vi.fn>;
@@ -69,6 +70,30 @@ describe('listDepartments', () => {
       manager: { id: 8, name: '佐藤部長' },
       isActive: true,
     });
+  });
+
+  it('sort: "name,desc" を orderBy に反映する', async () => {
+    mockTransaction.mockResolvedValue([1, [makeMockDepartment()]]);
+
+    await listDepartments({ isActive: undefined }, { page: 0, size: 20, sort: 'name,desc' });
+
+    expect(mockDeptFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { name: 'desc' } })
+    );
+  });
+
+  it('sort に許可外フィールドを指定 → 400 ApiError', async () => {
+    const { ApiError } = await import('@/lib/api');
+    await expect(
+      listDepartments({ isActive: undefined }, { page: 0, size: 20, sort: 'password,asc' })
+    ).rejects.toThrow(ApiError);
+  });
+
+  it('sort の方向が不正 → 400 ApiError', async () => {
+    const { ApiError } = await import('@/lib/api');
+    await expect(
+      listDepartments({ isActive: undefined }, { page: 0, size: 20, sort: 'name,invalid' })
+    ).rejects.toThrow(ApiError);
   });
 
   it('parentDepartment / manager が null の部署も返せる', async () => {

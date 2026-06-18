@@ -271,6 +271,35 @@ describe('listDailyReports', () => {
     expect(result.totalPages).toBe(2);
     expect(result.page).toBe(1);
   });
+
+  it('sort 未指定のとき reportDate,desc がデフォルト orderBy になる', async () => {
+    mockCount.mockResolvedValue(0);
+    mockFindMany.mockResolvedValue([]);
+
+    await listDailyReports(12, 'SALES', 3, {}, { page: 0, size: 20 });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { reportDate: 'desc' } })
+    );
+  });
+
+  it('sort: "createdAt,asc" を orderBy に反映する', async () => {
+    mockCount.mockResolvedValue(0);
+    mockFindMany.mockResolvedValue([]);
+
+    await listDailyReports(12, 'SALES', 3, {}, { page: 0, size: 20, sort: 'createdAt,asc' });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'asc' } })
+    );
+  });
+
+  it('sort に許可外フィールドを指定 → 400 ApiError', async () => {
+    const { ApiError } = await import('@/lib/api');
+    await expect(
+      listDailyReports(12, 'SALES', 3, {}, { page: 0, size: 20, sort: 'name,asc' })
+    ).rejects.toThrow(ApiError);
+  });
 });
 
 describe('getDailyReport', () => {

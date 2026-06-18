@@ -1,9 +1,12 @@
 import { Prisma } from '@/generated/prisma/client';
 import { badRequest, conflict, createPageResponse, forbidden, notFound } from '@/lib/api';
 import type { PageResponse } from '@/lib/api/pagination';
+import { parseSortParam } from '@/lib/api/sort';
 import { formatDate, formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type { CreateDailyReportInput } from '@/lib/schemas/daily-report.schema';
+
+const DAILY_REPORT_SORT_FIELDS = ['reportDate', 'createdAt', 'updatedAt'] as const;
 
 // ─── Response types ────────────────────────────────────────────────────────────
 
@@ -144,6 +147,10 @@ export async function listDailyReports(
     where.status = filters.status;
   }
 
+  const orderBy = parseSortParam(pagination.sort, DAILY_REPORT_SORT_FIELDS) ?? {
+    reportDate: 'desc',
+  };
+
   const [total, reports] = await Promise.all([
     prisma.dailyReport.count({ where }),
     prisma.dailyReport.findMany({
@@ -155,7 +162,7 @@ export async function listDailyReports(
       },
       skip: pagination.page * pagination.size,
       take: pagination.size,
-      orderBy: { reportDate: 'desc' },
+      orderBy,
     }),
   ]);
 
