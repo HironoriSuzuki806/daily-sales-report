@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server';
 import { ApiError } from './handler';
 import { HttpStatus } from './http-status';
-import { AuthError, extractBearerToken as extractBearer, verifyRequestToken } from '@/lib/auth';
+import {
+  AuthError,
+  extractBearerToken as extractBearer,
+  isTokenBlacklisted,
+  verifyToken,
+} from '@/lib/auth';
+import { ACCESS_TOKEN_COOKIE } from '@/lib/session';
 
 export interface AuthUser {
   id: number;
@@ -38,12 +44,27 @@ function userFromProxyHeaders(request: NextRequest): AuthUser | null {
   };
 }
 
+/**
+ * Extracts the JWT from the Authorization Bearer header (preferred, for API clients)
+ * or falls back to the session cookie (for same-origin browser requests).
+ */
+function resolveToken(request: NextRequest): string | null {
+  return (
+    extractBearer(request.headers.get('Authorization')) ??
+    request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ??
+    null
+  );
+}
+
 export async function getCurrentUser(request: NextRequest): Promise<AuthUser | null> {
   const fromHeaders = userFromProxyHeaders(request);
   if (fromHeaders) return fromHeaders;
 
+  const token = resolveToken(request);
+  if (!token || isTokenBlacklisted(token)) return null;
+
   try {
-    const payload = await verifyRequestToken(request);
+    const payload = await verifyToken(token);
     return {
       id: Number(payload.sub),
       name: payload.name,
@@ -60,8 +81,17 @@ export async function requireAuth(request: NextRequest): Promise<AuthUser> {
   const fromHeaders = userFromProxyHeaders(request);
   if (fromHeaders) return fromHeaders;
 
+  const token = resolveToken(request);
+  if (!token) {
+    throw new ApiError(HttpStatus.UNAUTHORIZED, '認証が必要です');
+  }
+
+  if (isTokenBlacklisted(token)) {
+    throw new ApiError(HttpStatus.UNAUTHORIZED, 'トークンは無効化されています');
+  }
+
   try {
-    const payload = await verifyRequestToken(request);
+    const payload = await verifyToken(token);
     return {
       id: Number(payload.sub),
       name: payload.name,
