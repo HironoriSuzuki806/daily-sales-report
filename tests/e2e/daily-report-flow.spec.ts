@@ -97,8 +97,9 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 5: SCR-103 でコメントが0件であることを確認する', async ({ page }) => {
+    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
     await login(page, 'sales_a@example.com');
-    await page.goto(reportUrl ?? '/reports');
+    await page.goto(reportUrl);
 
     await expect(page.getByText(/コメント（0 件）/)).toBeVisible();
     // SALESにはコメント投稿フォームが表示されない
@@ -106,8 +107,9 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 6: MANAGERユーザーでSCR-103 を開きコメントを投稿する', async ({ page }) => {
+    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
     await login(page, 'mgr_a@example.com');
-    await page.goto(reportUrl ?? '/reports');
+    await page.goto(reportUrl);
 
     // コメント投稿フォームが表示される
     await expect(page.getByRole('button', { name: '投稿' })).toBeVisible();
@@ -123,8 +125,9 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 7: SALESユーザーで SCR-103 を確認 → コメントが表示される', async ({ page }) => {
+    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
     await login(page, 'sales_a@example.com');
-    await page.goto(reportUrl ?? '/reports');
+    await page.goto(reportUrl);
 
     // コメント本文が表示される
     await expect(page.getByText('納期はC社のスケジュールも確認して。')).toBeVisible();
