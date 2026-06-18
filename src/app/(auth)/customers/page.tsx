@@ -32,6 +32,7 @@ type SearchFormProps = {
   salespersons: SalespersonOption[];
 };
 
+// URL クエリパラメータと form[method=GET] の連動のため shadcn/ui Select ではなくネイティブ select を使用
 const selectClassName =
   'border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs ' +
   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
@@ -233,7 +234,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       },
       { page: params.page, size: PAGE_SIZE, sort: undefined }
     ),
-    listSalespersons({ isActive: true }, { page: 0, size: 100, sort: undefined }),
+    listSalespersons({ isActive: true }, { page: 0, size: 100, sort: undefined }), // 暫定上限100件
   ]);
 
   return (
