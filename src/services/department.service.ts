@@ -1,6 +1,9 @@
 import { Prisma } from '@/generated/prisma/client';
 import { badRequest, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
+import { parseSortParam } from '@/lib/api/sort';
+
+const DEPARTMENT_SORT_FIELDS = ['id', 'name', 'createdAt', 'updatedAt'] as const;
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type {
@@ -123,6 +126,8 @@ export async function listDepartments(
     where.isActive = query.isActive;
   }
 
+  const orderBy = parseSortParam(pagination.sort, DEPARTMENT_SORT_FIELDS) ?? { id: 'asc' };
+
   const [total, departments] = await prisma.$transaction([
     prisma.department.count({ where }),
     prisma.department.findMany({
@@ -130,7 +135,7 @@ export async function listDepartments(
       include: departmentInclude,
       skip: pagination.page * pagination.size,
       take: pagination.size,
-      orderBy: { id: 'asc' },
+      orderBy,
     }),
   ]);
 
