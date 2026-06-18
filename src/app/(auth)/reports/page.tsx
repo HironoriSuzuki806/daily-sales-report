@@ -121,12 +121,12 @@ function StatusBadge({ status }: { status: DailyReportSummaryResponse['status'] 
   return <Badge variant="secondary">下書き</Badge>;
 }
 
-type ReportTableProps = {
+type ReportsTableProps = {
   reports: DailyReportSummaryResponse[];
   currentUserId: number;
 };
 
-function ReportsTable({ reports, currentUserId }: ReportTableProps) {
+function ReportsTable({ reports, currentUserId }: ReportsTableProps) {
   if (reports.length === 0) {
     return <p className="text-muted-foreground py-8 text-center text-sm">日報が見つかりません。</p>;
   }
@@ -171,18 +171,19 @@ function ReportsTable({ reports, currentUserId }: ReportTableProps) {
                 <StatusBadge status={report.status} />
               </td>
               <td className="px-3 py-2">
-                {isOwnDraft ? (
-                  <Link
-                    href={`/reports/${report.id}/edit`}
-                    className="focus-visible:ring-ring relative z-10 text-xs underline focus-visible:ring-2 focus-visible:outline-none"
-                  >
-                    編集
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-xs">
                     {report.commentCount > 0 ? `${report.commentCount} 件` : '—'}
                   </span>
-                )}
+                  {isOwnDraft && (
+                    <Link
+                      href={`/reports/${report.id}/edit`}
+                      className="focus-visible:ring-ring relative z-10 text-xs underline focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      編集
+                    </Link>
+                  )}
+                </div>
               </td>
             </tr>
           );
