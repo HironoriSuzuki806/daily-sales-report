@@ -84,7 +84,7 @@ describe('GET /api/v1/customers', () => {
     expect(body.content[0].name).toBe('ABC商事');
   });
 
-  it('name クエリで絞り込み呼び出し', async () => {
+  it('TC-MST-005: name クエリで部分一致検索 → 200・一致する顧客が返る', async () => {
     await GET(makeGetRequest({ name: 'ABC' }));
     expect(mockListCustomers).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'ABC' }),

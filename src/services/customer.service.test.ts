@@ -40,6 +40,33 @@ function makeMockCustomer(overrides = {}) {
   };
 }
 
+describe('TC-MST-005: listCustomers - 部分一致検索', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('name 部分一致: "ABC" で検索すると where.name に contains が設定される', async () => {
+    mockTransaction.mockResolvedValue([1, [makeMockCustomer()]]);
+
+    const result = await listCustomers({ name: 'ABC' }, { page: 0, size: 20 });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ name: { contains: 'ABC' } }),
+      })
+    );
+    expect(result.content[0].name).toBe('ABC商事');
+  });
+
+  it('name 未指定のとき where.name は設定されない', async () => {
+    mockTransaction.mockResolvedValue([0, []]);
+
+    await listCustomers({}, { page: 0, size: 20 });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.not.objectContaining({ name: expect.anything() }) })
+    );
+  });
+});
+
 describe('listCustomers - sort', () => {
   beforeEach(() => vi.clearAllMocks());
 
