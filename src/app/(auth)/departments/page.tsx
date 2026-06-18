@@ -32,6 +32,7 @@ type SearchFormProps = {
   parentDepartments: DepartmentOption[];
 };
 
+// URL クエリパラメータと form[method=GET] の連動のため shadcn/ui Select ではなくネイティブ select を使用
 const selectClassName =
   'border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs ' +
   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
