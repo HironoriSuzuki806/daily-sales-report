@@ -72,6 +72,16 @@ describe('listDepartments', () => {
     });
   });
 
+  it('sort 未指定のとき id,asc がデフォルト orderBy になる', async () => {
+    mockTransaction.mockResolvedValue([1, [makeMockDepartment()]]);
+
+    await listDepartments({ isActive: undefined }, { page: 0, size: 20, sort: undefined });
+
+    expect(mockDeptFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { id: 'asc' } })
+    );
+  });
+
   it('sort: "name,desc" を orderBy に反映する', async () => {
     mockTransaction.mockResolvedValue([1, [makeMockDepartment()]]);
 
