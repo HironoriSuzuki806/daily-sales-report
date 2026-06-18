@@ -40,12 +40,16 @@ function makeRequest(
     bearerToken?: string;
     cookieToken?: string;
     proxyHeaders?: Record<string, string>;
+    origin?: string;
+    host?: string;
   } = {}
 ): NextRequest {
-  const { bearerToken, cookieToken, proxyHeaders = {} } = options;
+  const { bearerToken, cookieToken, proxyHeaders = {}, origin, host } = options;
   const headers: Record<string, string> = { ...proxyHeaders };
   if (bearerToken) headers['Authorization'] = `Bearer ${bearerToken}`;
   if (cookieToken) headers['Cookie'] = `access_token=${cookieToken}`;
+  if (origin) headers['Origin'] = origin;
+  if (host) headers['Host'] = host;
   return new NextRequest('http://localhost/api/v1/test', { headers });
 }
 
@@ -85,6 +89,13 @@ describe('requireAuth', () => {
 
   it('returns user when valid token in session cookie (browser form fallback)', async () => {
     const token = await makeToken();
+    const req = makeRequest({ cookieToken: token, origin: 'http://localhost', host: 'localhost' });
+    const user = await requireAuth(req);
+    expect(user).toMatchObject(expectedUser);
+  });
+
+  it('returns cookie-auth user when no Origin header is present (server-to-server)', async () => {
+    const token = await makeToken();
     const req = makeRequest({ cookieToken: token });
     const user = await requireAuth(req);
     expect(user).toMatchObject(expectedUser);
@@ -118,13 +129,51 @@ describe('requireAuth', () => {
     await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
   });
 
-  it('throws 401 when token is expired', async () => {
+  it('throws 401 when Bearer token is expired', async () => {
     const token = await makeToken({ expiresIn: '0s' });
     const req = makeRequest({ bearerToken: token });
     await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
   });
 
-  it('returns user from proxy headers when present (skips token check)', async () => {
+  it('throws 401 when cookie token is expired', async () => {
+    const token = await makeToken({ expiresIn: '0s' });
+    const req = makeRequest({ cookieToken: token, origin: 'http://localhost', host: 'localhost' });
+    await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('throws 403 when cookie Origin does not match Host (CSRF guard)', async () => {
+    const token = await makeToken();
+    const req = makeRequest({
+      cookieToken: token,
+      origin: 'https://evil.example.com',
+      host: 'app.example.com',
+    });
+    await expect(requireAuth(req)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('allows cookie auth when Origin matches Host', async () => {
+    const token = await makeToken();
+    const req = makeRequest({
+      cookieToken: token,
+      origin: 'https://app.example.com',
+      host: 'app.example.com',
+    });
+    const user = await requireAuth(req);
+    expect(user).toMatchObject(expectedUser);
+  });
+
+  it('skips CSRF check for Bearer-authenticated requests regardless of Origin', async () => {
+    const token = await makeToken();
+    const req = makeRequest({
+      bearerToken: token,
+      origin: 'https://evil.example.com',
+      host: 'app.example.com',
+    });
+    const user = await requireAuth(req);
+    expect(user).toMatchObject(expectedUser);
+  });
+
+  it('returns user from proxy headers (skips token check)', async () => {
     const req = makeRequest({
       proxyHeaders: {
         'x-user-id': '99',
@@ -134,12 +183,15 @@ describe('requireAuth', () => {
       },
     });
     const user = await requireAuth(req);
-    expect(user).toMatchObject({ id: 99, role: 'ADMIN', email: 'proxy@example.com' });
+    expect(user).toMatchObject({
+      id: 99,
+      role: 'ADMIN',
+      email: 'proxy@example.com',
+      departmentId: null,
+    });
   });
 
-  it('maps departmentId to null when not present in token', async () => {
-    const token = await makeToken({ departmentId: undefined });
-    // Re-sign without departmentId using raw SignJWT
+  it('maps departmentId to null when token has no departmentId claim', async () => {
     const rawToken = await new SignJWT({
       sub: '12',
       name: '山田太郎',
@@ -191,5 +243,18 @@ describe('getCurrentUser', () => {
     const req = makeRequest({ bearerToken: 'not-a-valid-jwt' });
     const user = await getCurrentUser(req);
     expect(user).toBeNull();
+  });
+
+  it('returns user from proxy headers (skips token check)', async () => {
+    const req = makeRequest({
+      proxyHeaders: {
+        'x-user-id': '5',
+        'x-user-name': encodeURIComponent('管理者'),
+        'x-user-email': 'admin@example.com',
+        'x-user-role': 'ADMIN',
+      },
+    });
+    const user = await getCurrentUser(req);
+    expect(user).toMatchObject({ id: 5, role: 'ADMIN', departmentId: null });
   });
 });
