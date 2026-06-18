@@ -427,7 +427,9 @@ Authorization: Bearer {accessToken}
   "email": "yamada@example.com",
   "role": "SALES",
   "department": { "id": 3, "name": "東日本営業部" },
-  "isActive": true
+  "isActive": true,
+  "createdAt": "2026-01-10T09:00:00",
+  "updatedAt": "2026-01-10T09:00:00"
 }
 ```
 
