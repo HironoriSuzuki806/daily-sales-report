@@ -2,10 +2,11 @@
 import { NextRequest } from 'next/server';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { POST } from './route';
+import { GET, POST } from './route';
 
 vi.mock('@/services/daily-report.service', () => ({
   createDailyReport: vi.fn(),
+  listDailyReports: vi.fn(),
 }));
 
 vi.mock('@/lib/api/auth', () => ({
@@ -14,9 +15,10 @@ vi.mock('@/lib/api/auth', () => ({
   extractBearerToken: vi.fn(),
 }));
 
-import { createDailyReport } from '@/services/daily-report.service';
+import { createDailyReport, listDailyReports } from '@/services/daily-report.service';
 import { requireAuth } from '@/lib/api/auth';
 const mockCreateDailyReport = createDailyReport as ReturnType<typeof vi.fn>;
+const mockListDailyReports = listDailyReports as ReturnType<typeof vi.fn>;
 const mockRequireAuth = requireAuth as ReturnType<typeof vi.fn>;
 
 const salesUser = {
@@ -26,6 +28,37 @@ const salesUser = {
   role: 'SALES' as const,
   departmentId: 3,
 };
+
+const managerUser = {
+  id: 8,
+  name: '佐藤部長',
+  email: 'sato@example.com',
+  role: 'MANAGER' as const,
+  departmentId: 3,
+};
+
+const baseSummary = {
+  id: 1001,
+  reportDate: '2026-06-04',
+  salesperson: { id: 12, name: '山田太郎' },
+  visitCount: 3,
+  status: 'SUBMITTED' as const,
+  commentCount: 1,
+};
+
+const pageResponse = {
+  content: [baseSummary],
+  page: 0,
+  size: 20,
+  totalElements: 1,
+  totalPages: 1,
+};
+
+function makeGetRequest(params: Record<string, string> = {}) {
+  const url = new URL('http://localhost/api/v1/daily-reports');
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  return new NextRequest(url, { headers: { Authorization: 'Bearer dummy-token' } });
+}
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost/api/v1/daily-reports', {
@@ -219,5 +252,111 @@ describe('POST /api/v1/daily-reports', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field.includes('visitTime'))).toBe(
       true
     );
+  });
+});
+
+describe('GET /api/v1/daily-reports', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRequireAuth.mockResolvedValue(salesUser);
+    mockListDailyReports.mockResolvedValue(pageResponse);
+  });
+
+  it('TC-LST-001: SALESが自分の日報一覧を取得 → 200', async () => {
+    const res = await GET(makeGetRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.content).toHaveLength(1);
+    expect(body.content[0].id).toBe(1001);
+    expect(body.content[0].visitCount).toBe(3);
+    expect(body.content[0].commentCount).toBe(1);
+    expect(body.totalElements).toBe(1);
+    expect(mockListDailyReports).toHaveBeenCalledWith(
+      salesUser.id,
+      salesUser.role,
+      salesUser.departmentId,
+      expect.any(Object),
+      expect.any(Object)
+    );
+  });
+
+  it('TC-LST-002: MANAGERが salespersonId 指定で部署メンバーの日報取得 → 200', async () => {
+    mockRequireAuth.mockResolvedValue(managerUser);
+
+    await GET(makeGetRequest({ salespersonId: '12' }));
+
+    expect(mockListDailyReports).toHaveBeenCalledWith(
+      managerUser.id,
+      managerUser.role,
+      managerUser.departmentId,
+      expect.objectContaining({ salespersonId: 12 }),
+      expect.any(Object)
+    );
+  });
+
+  it('TC-LST-003: dateFrom/dateTo で期間絞り込み', async () => {
+    await GET(makeGetRequest({ dateFrom: '2026-06-01', dateTo: '2026-06-30' }));
+
+    expect(mockListDailyReports).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({ dateFrom: '2026-06-01', dateTo: '2026-06-30' }),
+      expect.any(Object)
+    );
+  });
+
+  it('TC-LST-004: status=SUBMITTED で絞り込み', async () => {
+    await GET(makeGetRequest({ status: 'SUBMITTED' }));
+
+    expect(mockListDailyReports).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({ status: 'SUBMITTED' }),
+      expect.any(Object)
+    );
+  });
+
+  it('TC-LST-005: ページング（page=1, size=20）', async () => {
+    const multiPageResponse = {
+      ...pageResponse,
+      page: 1,
+      size: 20,
+      totalElements: 21,
+      totalPages: 2,
+    };
+    mockListDailyReports.mockResolvedValue(multiPageResponse);
+
+    const res = await GET(makeGetRequest({ page: '1', size: '20' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.page).toBe(1);
+    expect(body.totalPages).toBe(2);
+    expect(body.totalElements).toBe(21);
+    expect(mockListDailyReports).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(String),
+      expect.anything(),
+      expect.any(Object),
+      expect.objectContaining({ page: 1, size: 20 })
+    );
+  });
+
+  it('未認証 → 401', async () => {
+    const { ApiError } = await import('@/lib/api');
+    mockRequireAuth.mockRejectedValue(new ApiError(401, '認証が必要です'));
+
+    const res = await GET(makeGetRequest());
+
+    expect(res.status).toBe(401);
+  });
+
+  it('status が不正値 → 400', async () => {
+    const res = await GET(makeGetRequest({ status: 'INVALID' }));
+
+    expect(res.status).toBe(400);
   });
 });

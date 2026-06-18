@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { conflict } from '@/lib/api';
+import type { PageResponse } from '@/lib/api/pagination';
 import { formatDate, formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type { CreateDailyReportInput } from '@/lib/schemas/daily-report.schema';
@@ -90,6 +91,66 @@ export function mapToDetailResponse(report: DailyReportWithRelations): DailyRepo
 }
 
 // ─── Service function ──────────────────────────────────────────────────────────
+
+// ─── Summary type for list responses ──────────────────────────────────────────
+
+export interface DailyReportSummaryResponse {
+  id: number;
+  reportDate: string;
+  salesperson: { id: number; name: string };
+  visitCount: number;
+  status: 'DRAFT' | 'SUBMITTED';
+  commentCount: number;
+}
+
+// ─── Filter types ──────────────────────────────────────────────────────────────
+
+export interface ListDailyReportsFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  salespersonId?: number;
+  status?: 'DRAFT' | 'SUBMITTED';
+}
+
+// ─── Stub service functions (to be implemented) ────────────────────────────────
+
+export async function listDailyReports(
+  _requesterId: number,
+  _role: 'SALES' | 'MANAGER' | 'ADMIN',
+  _departmentId: number | null,
+  _filters: ListDailyReportsFilters,
+  _pagination: { page: number; size: number; sort?: string }
+): Promise<PageResponse<DailyReportSummaryResponse>> {
+  throw new Error('Not implemented');
+}
+
+export async function getDailyReport(
+  _id: number,
+  _requesterId: number,
+  _role: 'SALES' | 'MANAGER' | 'ADMIN',
+  _departmentId: number | null
+): Promise<DailyReportDetailResponse> {
+  throw new Error('Not implemented');
+}
+
+export async function updateDailyReport(
+  _id: number,
+  _requesterId: number,
+  _input: CreateDailyReportInput
+): Promise<DailyReportDetailResponse> {
+  throw new Error('Not implemented');
+}
+
+export async function deleteDailyReport(_id: number, _requesterId: number): Promise<void> {
+  throw new Error('Not implemented');
+}
+
+export async function submitDailyReport(
+  _id: number,
+  _requesterId: number
+): Promise<DailyReportDetailResponse> {
+  throw new Error('Not implemented');
+}
 
 export async function createDailyReport(
   salespersonId: number,
