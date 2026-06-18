@@ -16,7 +16,7 @@ export const ACCESS_TOKEN_COOKIE = 'access_token';
 /** Cookie options shared between set and delete operations. */
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.NODE_ENV === 'production' && process.env.CI !== 'true',
   sameSite: 'lax' as const,
   path: '/',
   maxAge: parseInt(process.env.JWT_EXPIRES_IN ?? '3600', 10),
