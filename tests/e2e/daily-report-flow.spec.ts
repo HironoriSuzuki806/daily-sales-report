@@ -50,9 +50,8 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
     await login(page, 'sales_a@example.com');
     await page.goto('/reports/new');
 
-    // 報告日を設定（今日の日付）
-    const today = new Date().toISOString().slice(0, 10);
-    await page.locator('input[type="date"]').fill(today);
+    // 報告日を固定の過去日付に設定（today を使うと CI リトライ時に同一日重複で 409 になる）
+    await page.locator('input[type="date"]').fill('2026-01-15');
 
     // 1行目の顧客と訪問内容
     await page.locator('select').first().selectOption({ label: 'ABC商事' });
