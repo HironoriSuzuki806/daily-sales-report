@@ -3,10 +3,10 @@ import { Prisma } from '@/generated/prisma/client';
 import { badRequest, conflict, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { parseSortParam } from '@/lib/api/sort';
-
-const SALESPERSON_SORT_FIELDS = ['id', 'name', 'email', 'createdAt', 'updatedAt'] as const;
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
+
+const SALESPERSON_SORT_FIELDS = ['id', 'name', 'email', 'createdAt', 'updatedAt'] as const;
 import type {
   SalespersonInput,
   SalespersonUpdate,

@@ -2,10 +2,10 @@ import { Prisma } from '@/generated/prisma/client';
 import { badRequest, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
 import { parseSortParam } from '@/lib/api/sort';
-
-const DEPARTMENT_SORT_FIELDS = ['id', 'name', 'createdAt', 'updatedAt'] as const;
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
+
+const DEPARTMENT_SORT_FIELDS = ['id', 'name', 'createdAt', 'updatedAt'] as const;
 import type {
   DepartmentInput,
   DepartmentUpdate,
