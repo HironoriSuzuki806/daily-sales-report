@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { formatDatetimeDisplay } from '@/lib/format';
 import { getSessionUser } from '@/lib/session';
 import { getDailyReport } from '@/services/daily-report.service';
 
@@ -26,7 +27,7 @@ export default async function ReportDetailPage({ params }: PageProps) {
 
   const { id: rawId } = await params;
   const reportId = parseInt(rawId, 10);
-  if (isNaN(reportId)) notFound();
+  if (!Number.isFinite(reportId) || !Number.isSafeInteger(reportId)) notFound();
 
   const requesterId = Number(sessionUser.sub);
   const role = sessionUser.role as 'SALES' | 'MANAGER';
@@ -78,7 +79,7 @@ export default async function ReportDetailPage({ params }: PageProps) {
             {report.submittedAt && (
               <div>
                 <span className="text-muted-foreground">提出日時</span>
-                <p className="mt-0.5 font-medium">{report.submittedAt}</p>
+                <p className="mt-0.5 font-medium">{formatDatetimeDisplay(report.submittedAt)}</p>
               </div>
             )}
           </div>
@@ -153,7 +154,9 @@ export default async function ReportDetailPage({ params }: PageProps) {
                 <li key={comment.id} className="space-y-1 border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-medium">{comment.commenter.name}</span>
-                    <span className="text-muted-foreground">{comment.createdAt}</span>
+                    <span className="text-muted-foreground">
+                      {formatDatetimeDisplay(comment.createdAt)}
+                    </span>
                   </div>
                   <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                 </li>

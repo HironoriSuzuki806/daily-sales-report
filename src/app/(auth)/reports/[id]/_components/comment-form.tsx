@@ -16,6 +16,7 @@ export function CommentForm({ reportId }: CommentFormProps) {
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
   const textareaId = useId();
+  const errorId = useId();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +31,7 @@ export function CommentForm({ reportId }: CommentFormProps) {
 
     startTransition(async () => {
       try {
+        // Same-origin fetch: session cookie is sent automatically by the browser.
         const res = await fetch(`/api/v1/daily-reports/${reportId}/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -68,6 +70,7 @@ export function CommentForm({ reportId }: CommentFormProps) {
         rows={3}
         disabled={isPending}
         aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
         placeholder="コメントを入力してください"
         className={
           'border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring ' +
@@ -75,7 +78,11 @@ export function CommentForm({ reportId }: CommentFormProps) {
           'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50'
         }
       />
-      {error && <p className="text-destructive text-xs">{error}</p>}
+      {error && (
+        <p id={errorId} role="alert" className="text-destructive text-xs">
+          {error}
+        </p>
+      )}
       <div className="flex justify-end">
         <Button type="submit" size="sm" disabled={isPending}>
           {isPending && <Loader2 className="size-4 animate-spin" />}
