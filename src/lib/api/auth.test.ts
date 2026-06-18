@@ -162,6 +162,16 @@ describe('requireAuth', () => {
     expect(user).toMatchObject(expectedUser);
   });
 
+  it('throws 403 when Origin is present but Host header is absent', async () => {
+    const token = await makeToken();
+    const headers: Record<string, string> = {
+      Cookie: `access_token=${token}`,
+      Origin: 'https://evil.example.com',
+    };
+    const req = new NextRequest('http://localhost/api/v1/test', { headers });
+    await expect(requireAuth(req)).rejects.toMatchObject({ status: 403 });
+  });
+
   it('skips CSRF check for Bearer-authenticated requests regardless of Origin', async () => {
     const token = await makeToken();
     const req = makeRequest({

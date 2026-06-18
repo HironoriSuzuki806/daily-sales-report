@@ -69,8 +69,12 @@ function resolveToken(request: NextRequest): TokenSource | null {
  */
 function assertSameOriginForCookieAuth(request: NextRequest): void {
   const origin = request.headers.get('origin');
+  if (!origin) return; // no Origin = server-to-server or same-origin GET, allow
+
   const host = request.headers.get('host');
-  if (!origin || !host) return;
+  if (!host) {
+    throw new ApiError(HttpStatus.FORBIDDEN, 'ホストヘッダーが存在しません');
+  }
 
   let originHost: string;
   try {
