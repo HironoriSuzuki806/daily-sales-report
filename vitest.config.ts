@@ -11,7 +11,7 @@ export default defineConfig({
     // git worktree 環境では Vite のワークスペースルート解決が親リポジトリを指すことが
     // あるため、絶対パスで指定する。
     setupFiles: [path.resolve(__dirname, 'src/test/setup.ts')],
-    exclude: ['**/node_modules/**', 'e2e/**'],
+    exclude: ['**/node_modules/**', 'tests/e2e/**'],
   },
   resolve: {
     alias: {
