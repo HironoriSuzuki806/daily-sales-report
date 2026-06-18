@@ -148,7 +148,12 @@ export function DepartmentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-6"
+      aria-describedby={formError ? formErrorId : undefined}
+    >
       {formError && (
         <div
           id={formErrorId}
