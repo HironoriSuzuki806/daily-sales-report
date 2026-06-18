@@ -2,8 +2,11 @@ import bcrypt from 'bcryptjs';
 import { Prisma } from '@/generated/prisma/client';
 import { badRequest, conflict, notFound } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
+import { parseSortParam } from '@/lib/api/sort';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
+
+const SALESPERSON_SORT_FIELDS = ['id', 'name', 'email', 'createdAt', 'updatedAt'] as const;
 import type {
   SalespersonInput,
   SalespersonUpdate,
@@ -69,6 +72,8 @@ export async function listSalespersons(
     where.isActive = query.isActive;
   }
 
+  const orderBy = parseSortParam(pagination.sort, SALESPERSON_SORT_FIELDS) ?? { id: 'asc' };
+
   const [total, salespersons] = await prisma.$transaction([
     prisma.salesperson.count({ where }),
     prisma.salesperson.findMany({
@@ -76,7 +81,7 @@ export async function listSalespersons(
       include: salespersonInclude,
       skip: pagination.page * pagination.size,
       take: pagination.size,
-      orderBy: { id: 'asc' },
+      orderBy,
     }),
   ]);
 

@@ -6,19 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { getSessionUser } from '@/lib/session';
 import { cn } from '@/lib/utils';
-import type { DepartmentResponse } from '@/services/department.service';
+import { getSessionUser } from '@/lib/session';
 import { listDepartments } from '@/services/department.service';
+import { listSalespersons, type SalespersonResponse } from '@/services/salesperson.service';
 
 import {
-  buildDepartmentsPath,
-  parseDepartmentListParams,
-  type DepartmentListParams,
+  buildSalespersonsPath,
+  parseSalespersonListParams,
+  type SalespersonListParams,
 } from './search-params';
 
 export const metadata: Metadata = {
-  title: '部署マスタ一覧 | 営業日報システム',
+  title: '営業マスタ一覧 | 営業日報システム',
 };
 
 const PAGE_SIZE = 20;
@@ -28,8 +28,8 @@ const PAGE_SIZE = 20;
 type DepartmentOption = { id: number; name: string };
 
 type SearchFormProps = {
-  params: DepartmentListParams;
-  parentDepartments: DepartmentOption[];
+  params: SalespersonListParams;
+  departments: DepartmentOption[];
 };
 
 // URL クエリパラメータと form[method=GET] の連動のため shadcn/ui Select ではなくネイティブ select を使用
@@ -37,14 +37,14 @@ const selectClassName =
   'border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs ' +
   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
 
-function SearchForm({ params, parentDepartments }: SearchFormProps) {
+function SearchForm({ params, departments }: SearchFormProps) {
   return (
     <Card>
       <CardContent>
-        <form method="GET" action="/departments" className="grid gap-4 md:grid-cols-4">
+        <form method="GET" action="/salespersons" className="grid gap-4 md:grid-cols-5">
           <div className="space-y-1.5">
             <label htmlFor="search-name" className="text-sm font-medium">
-              部署名
+              氏名
             </label>
             <Input
               id="search-name"
@@ -55,21 +55,38 @@ function SearchForm({ params, parentDepartments }: SearchFormProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="search-parent" className="text-sm font-medium">
-              上位部署
+            <label htmlFor="search-department" className="text-sm font-medium">
+              所属部署
             </label>
             <select
-              id="search-parent"
-              name="parentDepartmentId"
-              defaultValue={params.parentDepartmentId ?? ''}
+              id="search-department"
+              name="departmentId"
+              defaultValue={params.departmentId ?? ''}
               className={selectClassName}
             >
               <option value="">すべて</option>
-              {parentDepartments.map((dept) => (
+              {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
                   {dept.name}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="search-role" className="text-sm font-medium">
+              役割
+            </label>
+            <select
+              id="search-role"
+              name="role"
+              defaultValue={params.role ?? ''}
+              className={selectClassName}
+            >
+              <option value="">すべて</option>
+              <option value="SALES">営業</option>
+              <option value="MANAGER">上長</option>
+              <option value="ADMIN">管理者</option>
             </select>
           </div>
 
@@ -98,7 +115,24 @@ function SearchForm({ params, parentDepartments }: SearchFormProps) {
   );
 }
 
-// ─── departments table ────────────────────────────────────────────────────────
+// ─── salespersons table ───────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<SalespersonResponse['role'], string> = {
+  SALES: '営業',
+  MANAGER: '上長',
+  ADMIN: '管理者',
+};
+
+function RoleBadge({ role }: { role: SalespersonResponse['role'] }) {
+  const label = ROLE_LABELS[role];
+  if (role === 'ADMIN') return <Badge variant="destructive">{label}</Badge>;
+  if (role === 'MANAGER') return <Badge variant="secondary">{label}</Badge>;
+  return (
+    <Badge variant="outline" className="text-muted-foreground">
+      {label}
+    </Badge>
+  );
+}
 
 function ActiveBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
@@ -110,9 +144,9 @@ function ActiveBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
-function DepartmentsTable({ departments }: { departments: DepartmentResponse[] }) {
-  if (departments.length === 0) {
-    return <p className="text-muted-foreground py-8 text-center text-sm">部署が見つかりません。</p>;
+function SalespersonsTable({ salespersons }: { salespersons: SalespersonResponse[] }) {
+  if (salespersons.length === 0) {
+    return <p className="text-muted-foreground py-8 text-center text-sm">営業が見つかりません。</p>;
   }
 
   return (
@@ -120,13 +154,16 @@ function DepartmentsTable({ departments }: { departments: DepartmentResponse[] }
       <thead>
         <tr className="border-border text-muted-foreground border-b text-left">
           <th scope="col" className="px-3 py-2 font-medium">
-            部署名
+            氏名
           </th>
           <th scope="col" className="px-3 py-2 font-medium">
-            上位部署
+            メールアドレス
           </th>
           <th scope="col" className="px-3 py-2 font-medium">
-            部署長
+            役割
+          </th>
+          <th scope="col" className="px-3 py-2 font-medium">
+            所属部署
           </th>
           <th scope="col" className="px-3 py-2 font-medium">
             有効フラグ
@@ -134,22 +171,23 @@ function DepartmentsTable({ departments }: { departments: DepartmentResponse[] }
         </tr>
       </thead>
       <tbody>
-        {departments.map((dept) => (
-          <tr key={dept.id} className="border-border hover:bg-muted/50 relative border-b">
+        {salespersons.map((sp) => (
+          <tr key={sp.id} className="border-border hover:bg-muted/50 relative border-b">
             <td className="px-3 py-2 font-medium">
               <Link
-                href={`/departments/${dept.id}/edit`}
+                href={`/salespersons/${sp.id}/edit`}
                 className="focus-visible:ring-ring rounded after:absolute after:inset-0 hover:underline focus-visible:ring-2 focus-visible:outline-none"
               >
-                {dept.name}
+                {sp.name}
               </Link>
             </td>
-            <td className="text-muted-foreground px-3 py-2">
-              {dept.parentDepartment?.name ?? '—'}
-            </td>
-            <td className="text-muted-foreground px-3 py-2">{dept.manager?.name ?? '—'}</td>
+            <td className="text-muted-foreground px-3 py-2">{sp.email}</td>
             <td className="px-3 py-2">
-              <ActiveBadge isActive={dept.isActive} />
+              <RoleBadge role={sp.role} />
+            </td>
+            <td className="text-muted-foreground px-3 py-2">{sp.department?.name ?? '—'}</td>
+            <td className="px-3 py-2">
+              <ActiveBadge isActive={sp.isActive} />
             </td>
           </tr>
         ))}
@@ -161,7 +199,7 @@ function DepartmentsTable({ departments }: { departments: DepartmentResponse[] }
 // ─── pagination ───────────────────────────────────────────────────────────────
 
 type PaginationProps = {
-  params: DepartmentListParams;
+  params: SalespersonListParams;
   page: number;
   totalPages: number;
   totalElements: number;
@@ -186,7 +224,7 @@ function Pagination({ params, page, totalPages, totalElements }: PaginationProps
       </p>
       <div className="flex gap-2">
         <Link
-          href={buildDepartmentsPath(params, page - 1)}
+          href={buildSalespersonsPath(params, page - 1)}
           aria-disabled={!hasPrev}
           tabIndex={hasPrev ? undefined : -1}
           className={pageLinkClass(hasPrev)}
@@ -194,7 +232,7 @@ function Pagination({ params, page, totalPages, totalElements }: PaginationProps
           前へ
         </Link>
         <Link
-          href={buildDepartmentsPath(params, page + 1)}
+          href={buildSalespersonsPath(params, page + 1)}
           aria-disabled={!hasNext}
           tabIndex={hasNext ? undefined : -1}
           className={pageLinkClass(hasNext)}
@@ -212,52 +250,55 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function DepartmentsPage({ searchParams }: PageProps) {
+export default async function SalespersonsPage({ searchParams }: PageProps) {
   const sessionUser = await getSessionUser();
-  if (!sessionUser || sessionUser.role !== 'ADMIN') {
+  if (!sessionUser) {
+    redirect('/login');
+  }
+  if (sessionUser.role !== 'ADMIN') {
     redirect('/home');
   }
 
-  const params = parseDepartmentListParams(await searchParams);
+  const params = parseSalespersonListParams(await searchParams);
 
-  const [departmentsPage, allDepartmentsPage] = await Promise.all([
-    listDepartments(
+  const [salespersonsPage, departmentsPage] = await Promise.all([
+    listSalespersons(
       {
         name: params.name,
-        parentDepartmentId:
-          params.parentDepartmentId !== undefined ? Number(params.parentDepartmentId) : undefined,
+        departmentId: params.departmentId !== undefined ? Number(params.departmentId) : undefined,
+        role: params.role as SalespersonResponse['role'] | undefined,
         isActive: params.isActive !== undefined ? params.isActive === 'true' : undefined,
       },
-      { page: params.page, size: PAGE_SIZE }
+      { page: params.page, size: PAGE_SIZE, sort: undefined }
     ),
-    listDepartments({ isActive: true }, { page: 0, size: 1000 }),
+    listDepartments({ isActive: true }, { page: 0, size: 1000 }), // 暫定上限1000件
   ]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">部署マスタ一覧</h1>
-        <Link href="/departments/new" className={cn(buttonVariants({ variant: 'default' }))}>
+        <h1 className="text-2xl font-semibold tracking-tight">営業マスタ一覧</h1>
+        <Link href="/salespersons/new" className={cn(buttonVariants({ variant: 'default' }))}>
           新規登録
         </Link>
       </div>
 
       <SearchForm
         params={params}
-        parentDepartments={allDepartmentsPage.content.map((d) => ({ id: d.id, name: d.name }))}
+        departments={departmentsPage.content.map((d) => ({ id: d.id, name: d.name }))}
       />
 
       <Card>
         <CardContent>
-          <DepartmentsTable departments={departmentsPage.content} />
+          <SalespersonsTable salespersons={salespersonsPage.content} />
         </CardContent>
       </Card>
 
       <Pagination
         params={params}
-        page={departmentsPage.page}
-        totalPages={departmentsPage.totalPages}
-        totalElements={departmentsPage.totalElements}
+        page={salespersonsPage.page}
+        totalPages={salespersonsPage.totalPages}
+        totalElements={salespersonsPage.totalElements}
       />
     </div>
   );

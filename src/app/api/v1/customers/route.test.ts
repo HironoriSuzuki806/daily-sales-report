@@ -84,7 +84,7 @@ describe('GET /api/v1/customers', () => {
     expect(body.content[0].name).toBe('ABC商事');
   });
 
-  it('name クエリで絞り込み呼び出し', async () => {
+  it('TC-MST-005: name クエリで部分一致検索 → 200・一致する顧客が返る', async () => {
     await GET(makeGetRequest({ name: 'ABC' }));
     expect(mockListCustomers).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'ABC' }),
@@ -108,7 +108,7 @@ describe('GET /api/v1/customers', () => {
     );
   });
 
-  it('未認証 → 401', async () => {
+  it('TC-SEC-001: 未認証でのAPIアクセス → 401', async () => {
     const { ApiError } = await import('@/lib/api');
     mockRequireAuth.mockRejectedValue(new ApiError(401, '認証が必要です'));
     const res = await GET(makeGetRequest());
@@ -147,7 +147,7 @@ describe('POST /api/v1/customers', () => {
     expect(res.status).toBe(400);
   });
 
-  it('TC-MST-004: SALES ロールが登録 → 403', async () => {
+  it('TC-MST-004 / TC-SEC-002: SALES ロールがマスタ登録 → 403', async () => {
     mockRequireAuth.mockResolvedValue(salesUser);
     const res = await POST(makePostRequest({ name: 'ABC商事' }));
     expect(res.status).toBe(403);

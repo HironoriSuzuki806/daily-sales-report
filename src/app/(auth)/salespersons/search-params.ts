@@ -1,12 +1,10 @@
-/**
- * SCR-401 部署マスタ一覧の検索条件パラメータの解析・URL生成ヘルパー。
- */
-
-export type DepartmentListParams = {
-  /** 部署名（部分一致）。未指定は undefined */
+export type SalespersonListParams = {
+  /** 氏名（部分一致）。未指定は undefined */
   name?: string;
-  /** 上位部署ID。未指定は undefined */
-  parentDepartmentId?: string;
+  /** 所属部署ID。未指定は undefined */
+  departmentId?: string;
+  /** ロール。'SALES' | 'MANAGER' | 'ADMIN'。未指定（すべて）は undefined */
+  role?: string;
   /** 有効フラグ。'true' | 'false'。未指定（すべて）は undefined */
   isActive?: string;
   /** 0始まりのページ番号 */
@@ -20,10 +18,12 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return value;
 }
 
-/** 空文字・不正値を undefined に正規化しつつ searchParams を解析する。 */
-export function parseDepartmentListParams(searchParams: RawSearchParams): DepartmentListParams {
+const VALID_ROLES = ['SALES', 'MANAGER', 'ADMIN'] as const;
+
+export function parseSalespersonListParams(searchParams: RawSearchParams): SalespersonListParams {
   const name = firstValue(searchParams.name)?.trim();
-  const parentDepartmentId = firstValue(searchParams.parentDepartmentId);
+  const departmentId = firstValue(searchParams.departmentId);
+  const role = firstValue(searchParams.role);
   const isActive = firstValue(searchParams.isActive);
   const rawPage = firstValue(searchParams.page);
 
@@ -32,24 +32,24 @@ export function parseDepartmentListParams(searchParams: RawSearchParams): Depart
 
   return {
     name: name ? name : undefined,
-    parentDepartmentId:
-      parentDepartmentId && /^\d+$/.test(parentDepartmentId) ? parentDepartmentId : undefined,
+    departmentId: departmentId && /^\d+$/.test(departmentId) ? departmentId : undefined,
+    role: VALID_ROLES.includes(role as (typeof VALID_ROLES)[number]) ? role : undefined,
     isActive: isActive === 'true' || isActive === 'false' ? isActive : undefined,
     page,
   };
 }
 
-/** 検索条件＋ページ番号から /departments のクエリ文字列付きパスを生成する。 */
-export function buildDepartmentsPath(
-  params: DepartmentListParams,
+export function buildSalespersonsPath(
+  params: SalespersonListParams,
   page: number = params.page
 ): string {
   const query = new URLSearchParams();
   if (params.name) query.set('name', params.name);
-  if (params.parentDepartmentId) query.set('parentDepartmentId', params.parentDepartmentId);
+  if (params.departmentId) query.set('departmentId', params.departmentId);
+  if (params.role) query.set('role', params.role);
   if (params.isActive !== undefined) query.set('isActive', params.isActive);
   if (page > 0) query.set('page', String(page));
 
   const qs = query.toString();
-  return qs ? `/departments?${qs}` : '/departments';
+  return qs ? `/salespersons?${qs}` : '/salespersons';
 }

@@ -1,9 +1,12 @@
 import { Prisma } from '@/generated/prisma/client';
 import { notFound, badRequest } from '@/lib/api';
 import { createPageResponse, PaginationQuery, PageResponse } from '@/lib/api/pagination';
+import { parseSortParam } from '@/lib/api/sort';
 import { formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
 import type { CustomerCreate, CustomerUpdate, CustomerQuery } from '@/lib/schemas/customer.schema';
+
+const CUSTOMER_SORT_FIELDS = ['id', 'name', 'createdAt', 'updatedAt'] as const;
 
 // ─── Response types ────────────────────────────────────────────────────────────
 
@@ -54,7 +57,7 @@ export async function listCustomers(
   const where: Prisma.CustomerWhereInput = {};
 
   if (query.name !== undefined) {
-    where.name = { contains: query.name };
+    where.name = { contains: query.name, mode: 'insensitive' };
   }
   if (query.salesRepId !== undefined) {
     where.salesRepId = BigInt(query.salesRepId);
@@ -63,13 +66,14 @@ export async function listCustomers(
     where.isActive = query.isActive;
   }
 
+  const orderBy = parseSortParam(pagination.sort, CUSTOMER_SORT_FIELDS) ?? { id: 'asc' };
+
   const [total, customers] = await prisma.$transaction([
     prisma.customer.count({ where }),
     prisma.customer.findMany({
       where,
       include: customerInclude,
-      // TODO: pagination.sort に対応したソートを実装する（現状は id 昇順固定）
-      orderBy: { id: 'asc' },
+      orderBy,
       skip: pagination.page * pagination.size,
       take: pagination.size,
     }),
