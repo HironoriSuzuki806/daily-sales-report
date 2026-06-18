@@ -47,7 +47,7 @@ export function buildDepartmentsPath(
   const query = new URLSearchParams();
   if (params.name) query.set('name', params.name);
   if (params.parentDepartmentId) query.set('parentDepartmentId', params.parentDepartmentId);
-  if (params.isActive) query.set('isActive', params.isActive);
+  if (params.isActive !== undefined) query.set('isActive', params.isActive);
   if (page > 0) query.set('page', String(page));
 
   const qs = query.toString();

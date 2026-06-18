@@ -46,7 +46,7 @@ export function buildCustomersPath(params: CustomerListParams, page: number = pa
   const query = new URLSearchParams();
   if (params.name) query.set('name', params.name);
   if (params.salesRepId) query.set('salesRepId', params.salesRepId);
-  if (params.isActive) query.set('isActive', params.isActive);
+  if (params.isActive !== undefined) query.set('isActive', params.isActive);
   if (page > 0) query.set('page', String(page));
 
   const qs = query.toString();

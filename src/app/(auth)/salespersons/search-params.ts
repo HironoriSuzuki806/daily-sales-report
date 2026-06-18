@@ -47,7 +47,7 @@ export function buildSalespersonsPath(
   if (params.name) query.set('name', params.name);
   if (params.departmentId) query.set('departmentId', params.departmentId);
   if (params.role) query.set('role', params.role);
-  if (params.isActive) query.set('isActive', params.isActive);
+  if (params.isActive !== undefined) query.set('isActive', params.isActive);
   if (page > 0) query.set('page', String(page));
 
   const qs = query.toString();
