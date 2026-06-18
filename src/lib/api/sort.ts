@@ -3,7 +3,7 @@ import { badRequest } from '@/lib/api';
 export function parseSortParam<T extends string>(
   sort: string | undefined,
   allowedFields: readonly T[]
-): Record<T, 'asc' | 'desc'> | undefined {
+): Partial<Record<T, 'asc' | 'desc'>> | undefined {
   if (sort === undefined) return undefined;
 
   const parts = sort.split(',');
@@ -23,5 +23,5 @@ export function parseSortParam<T extends string>(
     );
   }
 
-  return { [field]: direction } as Record<T, 'asc' | 'desc'>;
+  return { [field]: direction } as Partial<Record<T, 'asc' | 'desc'>>;
 }
