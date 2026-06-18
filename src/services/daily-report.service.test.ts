@@ -32,7 +32,6 @@ const mockFindMany = prisma.dailyReport.findMany as ReturnType<typeof vi.fn>;
 const mockCount = prisma.dailyReport.count as ReturnType<typeof vi.fn>;
 const mockUpdate = prisma.dailyReport.update as ReturnType<typeof vi.fn>;
 const mockDelete = prisma.dailyReport.delete as ReturnType<typeof vi.fn>;
-const mockTransaction = prisma.$transaction as ReturnType<typeof vi.fn>;
 
 const now = new Date('2026-06-04T10:00:00Z');
 
