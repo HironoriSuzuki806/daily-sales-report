@@ -45,7 +45,7 @@ export function SalespersonForm({
   const emailId = useId();
   const passwordId = useId();
   const roleId = useId();
-  const departmentId = useId();
+  const departmentSelectId = useId();
   const isActiveId = useId();
   const formErrorId = useId();
 
@@ -112,15 +112,15 @@ export function SalespersonForm({
           return;
         }
 
-        const body = (await res.json()) as {
-          message?: string;
-          fieldErrors?: { field: string; message: string }[];
-        };
-
         if (res.status === 409) {
           setFieldErrors({ email: 'このメールアドレスはすでに使用されています' });
           return;
         }
+
+        const body = (await res.json()) as {
+          message?: string;
+          fieldErrors?: { field: string; message: string }[];
+        };
 
         if (res.status === 400) {
           if (body.fieldErrors && body.fieldErrors.length > 0) {
@@ -264,14 +264,14 @@ export function SalespersonForm({
 
       {/* 所属部署 */}
       <div className="space-y-1">
-        <label htmlFor={departmentId} className="text-sm font-medium">
+        <label htmlFor={departmentSelectId} className="text-sm font-medium">
           所属部署
           <span className="text-destructive ml-1" aria-hidden="true">
             *
           </span>
         </label>
         <select
-          id={departmentId}
+          id={departmentSelectId}
           name="departmentId"
           defaultValue={defaultValues?.departmentId ?? ''}
           disabled={isPending}
