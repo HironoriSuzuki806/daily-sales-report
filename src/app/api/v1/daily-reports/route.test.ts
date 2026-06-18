@@ -253,6 +253,34 @@ describe('POST /api/v1/daily-reports', () => {
       true
     );
   });
+
+  it('TC-SEC-005: XSS文字列は保存・返却時に文字列としてそのまま保持される', async () => {
+    const xssContent = '<script>alert("xss")</script>';
+    mockCreateDailyReport.mockResolvedValue({
+      ...baseReportResponse,
+      visitRecords: [
+        {
+          id: 5001,
+          customer: { id: 30, name: 'ABC商事' },
+          visitTime: null,
+          visitContent: xssContent,
+          sortOrder: 1,
+        },
+      ],
+    });
+
+    const res = await POST(
+      makeRequest({
+        reportDate: '2026-06-04',
+        visitRecords: [{ customerId: 30, visitContent: xssContent, sortOrder: 1 }],
+      })
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    // API layer must not escape/strip the string — sanitization is the UI's responsibility
+    expect(body.visitRecords[0].visitContent).toBe(xssContent);
+  });
 });
 
 describe('GET /api/v1/daily-reports', () => {

@@ -115,7 +115,7 @@ describe('requireAuth', () => {
     await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
   });
 
-  it('throws 401 when Bearer token is blacklisted', async () => {
+  it('TC-AUTH-006: ログアウト後（ブラックリスト済み）トークンでAPI → 401', async () => {
     const token = await makeToken();
     blacklistToken(token);
     const req = makeRequest({ bearerToken: token });
@@ -129,7 +129,7 @@ describe('requireAuth', () => {
     await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
   });
 
-  it('throws 401 when Bearer token is expired', async () => {
+  it('TC-AUTH-005: 無効（期限切れ）トークンでAPI呼び出し → 401', async () => {
     const token = await makeToken({ expiresIn: '0s' });
     const req = makeRequest({ bearerToken: token });
     await expect(requireAuth(req)).rejects.toMatchObject({ status: 401 });
