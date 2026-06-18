@@ -1,5 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
-import { conflict } from '@/lib/api';
+import { badRequest, conflict, createPageResponse, forbidden, notFound } from '@/lib/api';
 import type { PageResponse } from '@/lib/api/pagination';
 import { formatDate, formatDatetime } from '@/lib/format';
 import { prisma } from '@/lib/prisma';
@@ -39,7 +39,7 @@ export interface DailyReportDetailResponse {
 // ─── Prisma include shape ──────────────────────────────────────────────────────
 
 const dailyReportInclude = {
-  salesperson: { select: { id: true, name: true } },
+  salesperson: { select: { id: true, name: true, departmentId: true } },
   visitRecords: {
     orderBy: { sortOrder: 'asc' as const },
     include: {
@@ -90,8 +90,6 @@ export function mapToDetailResponse(report: DailyReportWithRelations): DailyRepo
   };
 }
 
-// ─── Service function ──────────────────────────────────────────────────────────
-
 // ─── Summary type for list responses ──────────────────────────────────────────
 
 export interface DailyReportSummaryResponse {
@@ -112,44 +110,191 @@ export interface ListDailyReportsFilters {
   status?: 'DRAFT' | 'SUBMITTED';
 }
 
-// ─── Stub service functions (to be implemented) ────────────────────────────────
+// ─── Service functions ─────────────────────────────────────────────────────────
 
 export async function listDailyReports(
-  _requesterId: number,
-  _role: 'SALES' | 'MANAGER' | 'ADMIN',
-  _departmentId: number | null,
-  _filters: ListDailyReportsFilters,
-  _pagination: { page: number; size: number; sort?: string }
+  requesterId: number,
+  role: 'SALES' | 'MANAGER' | 'ADMIN',
+  departmentId: number | null,
+  filters: ListDailyReportsFilters,
+  pagination: { page: number; size: number; sort?: string }
 ): Promise<PageResponse<DailyReportSummaryResponse>> {
-  throw new Error('Not implemented');
+  const where: Prisma.DailyReportWhereInput = {};
+
+  if (role === 'SALES') {
+    where.salespersonId = BigInt(requesterId);
+  } else if (role === 'MANAGER' && departmentId !== null) {
+    where.salesperson = { departmentId: BigInt(departmentId) };
+    if (filters.salespersonId) {
+      where.salespersonId = BigInt(filters.salespersonId);
+    }
+  }
+
+  if (filters.dateFrom || filters.dateTo) {
+    where.reportDate = {
+      ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+      ...(filters.dateTo ? { lte: new Date(filters.dateTo) } : {}),
+    };
+  }
+
+  if (filters.status) {
+    where.status = filters.status;
+  }
+
+  const [total, reports] = await prisma.$transaction([
+    prisma.dailyReport.count({ where }),
+    prisma.dailyReport.findMany({
+      where,
+      include: {
+        salesperson: { select: { id: true, name: true } },
+        visitRecords: { select: { id: true } },
+        comments: { select: { id: true } },
+      },
+      skip: pagination.page * pagination.size,
+      take: pagination.size,
+      orderBy: { reportDate: 'desc' },
+    }),
+  ]);
+
+  const content: DailyReportSummaryResponse[] = (
+    reports as Array<{
+      id: bigint;
+      reportDate: Date;
+      status: 'DRAFT' | 'SUBMITTED';
+      salesperson: { id: bigint; name: string };
+      visitRecords: unknown[];
+      comments: unknown[];
+    }>
+  ).map((report) => ({
+    id: Number(report.id),
+    reportDate: formatDate(report.reportDate),
+    salesperson: { id: Number(report.salesperson.id), name: report.salesperson.name },
+    visitCount: report.visitRecords.length,
+    commentCount: report.comments.length,
+    status: report.status,
+  }));
+
+  return createPageResponse(content, total as number, pagination);
 }
 
 export async function getDailyReport(
-  _id: number,
-  _requesterId: number,
-  _role: 'SALES' | 'MANAGER' | 'ADMIN',
-  _departmentId: number | null
+  id: number,
+  requesterId: number,
+  role: 'SALES' | 'MANAGER' | 'ADMIN',
+  departmentId: number | null
 ): Promise<DailyReportDetailResponse> {
-  throw new Error('Not implemented');
+  const report = await prisma.dailyReport.findUnique({
+    where: { id: BigInt(id) },
+    include: dailyReportInclude,
+  });
+
+  if (!report) notFound('日報が見つかりません');
+
+  if (role === 'SALES') {
+    if (Number(report.salespersonId) !== requesterId) {
+      forbidden('この日報を参照する権限がありません');
+    }
+  } else if (role === 'MANAGER') {
+    if (
+      report.salesperson.departmentId === null ||
+      departmentId === null ||
+      Number(report.salesperson.departmentId) !== departmentId
+    ) {
+      forbidden('この日報を参照する権限がありません');
+    }
+  }
+
+  return mapToDetailResponse(report);
 }
 
 export async function updateDailyReport(
-  _id: number,
-  _requesterId: number,
-  _input: CreateDailyReportInput
+  id: number,
+  requesterId: number,
+  input: CreateDailyReportInput
 ): Promise<DailyReportDetailResponse> {
-  throw new Error('Not implemented');
+  const existing = await prisma.dailyReport.findUnique({
+    where: { id: BigInt(id) },
+    select: { salespersonId: true },
+  });
+
+  if (!existing) notFound('日報が見つかりません');
+  if (Number(existing.salespersonId) !== requesterId) {
+    forbidden('この日報を更新する権限がありません');
+  }
+
+  const updated = await prisma.dailyReport.update({
+    where: { id: BigInt(id) },
+    data: {
+      reportDate: new Date(input.reportDate),
+      problem: input.problem ?? null,
+      plan: input.plan ?? null,
+      visitRecords: {
+        deleteMany: {},
+        create: input.visitRecords.map((vr) => ({
+          customerId: vr.customerId ? BigInt(vr.customerId) : null,
+          visitTime: vr.visitTime ?? null,
+          visitContent: vr.visitContent ?? null,
+          sortOrder: vr.sortOrder,
+        })),
+      },
+    },
+    include: dailyReportInclude,
+  });
+
+  return mapToDetailResponse(updated);
 }
 
-export async function deleteDailyReport(_id: number, _requesterId: number): Promise<void> {
-  throw new Error('Not implemented');
+export async function deleteDailyReport(id: number, requesterId: number): Promise<void> {
+  const report = await prisma.dailyReport.findUnique({
+    where: { id: BigInt(id) },
+    select: { salespersonId: true, status: true },
+  });
+
+  if (!report) notFound('日報が見つかりません');
+  if (Number(report.salespersonId) !== requesterId) {
+    forbidden('この日報を削除する権限がありません');
+  }
+  if (report.status === 'SUBMITTED') {
+    badRequest('提出済みの日報は削除できません');
+  }
+
+  await prisma.dailyReport.delete({ where: { id: BigInt(id) } });
 }
 
 export async function submitDailyReport(
-  _id: number,
-  _requesterId: number
+  id: number,
+  requesterId: number
 ): Promise<DailyReportDetailResponse> {
-  throw new Error('Not implemented');
+  const report = await prisma.dailyReport.findUnique({
+    where: { id: BigInt(id) },
+    include: dailyReportInclude,
+  });
+
+  if (!report) notFound('日報が見つかりません');
+  if (Number(report.salespersonId) !== requesterId) {
+    forbidden('この日報を提出する権限がありません');
+  }
+
+  if (report.visitRecords.length === 0) {
+    badRequest('提出には訪問記録が1件以上必要です');
+  }
+
+  for (const vr of report.visitRecords) {
+    if (!vr.customer) {
+      badRequest('訪問記録に顧客が設定されていない行があります');
+    }
+    if (!vr.visitContent) {
+      badRequest('訪問記録に訪問内容が入力されていない行があります');
+    }
+  }
+
+  const updated = await prisma.dailyReport.update({
+    where: { id: BigInt(id) },
+    data: { status: 'SUBMITTED', submittedAt: new Date() },
+    include: dailyReportInclude,
+  });
+
+  return mapToDetailResponse(updated);
 }
 
 export async function createDailyReport(

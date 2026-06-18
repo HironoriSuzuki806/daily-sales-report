@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-type Context = { params: Promise<{ id: string }> };
+import { badRequest, requireAuth, withErrorHandler } from '@/lib/api';
+import { submitDailyReport } from '@/services/daily-report.service';
 
-export async function POST(_req: NextRequest, _ctx: Context): Promise<NextResponse> {
-  return NextResponse.json({ message: 'Not implemented' }, { status: 501 });
-}
+export const POST = withErrorHandler(async (request: NextRequest, context) => {
+  const user = await requireAuth(request);
+  const { id } = await context!.params;
+  const reportId = parseInt(id, 10);
+  if (isNaN(reportId)) badRequest('IDは整数で指定してください');
+
+  const result = await submitDailyReport(reportId, user.id);
+  return NextResponse.json(result);
+});
