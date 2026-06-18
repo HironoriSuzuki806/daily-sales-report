@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown, ChevronUp, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -87,6 +87,10 @@ export function DailyReportForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Tracks the report ID once created in 'new' mode so that submit retries use PUT instead of POST,
+  // preventing a 409 conflict when the user retries after a failed submit attempt.
+  const savedIdRef = useRef<number | undefined>(reportId);
+
   const {
     register,
     control,
@@ -111,8 +115,10 @@ export function DailyReportForm({
   const watchVisitRecords = useWatch({ control, name: 'visitRecords' });
 
   async function saveDraft(values: FormValues): Promise<{ id: number } | null> {
-    const url = mode === 'new' ? '/api/v1/daily-reports' : `/api/v1/daily-reports/${reportId}`;
-    const method = mode === 'new' ? 'POST' : 'PUT';
+    const currentId = savedIdRef.current;
+    // Fetch carries the session cookie automatically (same-origin); no Bearer header needed.
+    const url = currentId ? `/api/v1/daily-reports/${currentId}` : '/api/v1/daily-reports';
+    const method = currentId ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
       method,
@@ -121,7 +127,9 @@ export function DailyReportForm({
     });
 
     if (res.ok) {
-      return (await res.json()) as { id: number };
+      const result = (await res.json()) as { id: number };
+      savedIdRef.current = result.id;
+      return result;
     }
 
     if (res.status === 409) {
@@ -154,10 +162,12 @@ export function DailyReportForm({
       const valid = await trigger(['reportDate']);
       if (!valid) return;
 
+      const wasNew = savedIdRef.current === undefined;
       const result = await saveDraft(getValues());
       if (!result) return;
 
-      if (mode === 'new') {
+      if (wasNew) {
+        // First save in 'new' mode: redirect to the edit URL so further saves use PUT.
         router.replace(`/reports/${result.id}/edit`);
         return;
       }
