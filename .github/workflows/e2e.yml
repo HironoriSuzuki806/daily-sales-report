@@ -67,9 +67,14 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
 
       - name: Start server
-        run: npm run start &
+        run: |
+          cp -r public .next/standalone/public
+          cp -r .next/static .next/standalone/.next/static
+          node .next/standalone/server.js &
         env:
-          NEXT_TELEMETRY_DISABLED: 1
+          PORT: "3000"
+          HOSTNAME: "0.0.0.0"
+          NEXT_TELEMETRY_DISABLED: "1"
 
       - name: Wait for server
         run: |
