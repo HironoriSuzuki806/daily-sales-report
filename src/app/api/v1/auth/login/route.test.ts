@@ -32,7 +32,7 @@ function makeRequest(body: unknown) {
 describe('POST /api/v1/auth/login', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('200: 正しい資格情報でトークンを返す', async () => {
+  it('TC-AUTH-001: 正しい資格情報でログイン → 200 + トークン取得', async () => {
     const loginResult = {
       accessToken: 'jwt-token',
       tokenType: 'Bearer' as const,
@@ -52,7 +52,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(mockSetSessionCookie).toHaveBeenCalledWith('jwt-token');
   });
 
-  it('400: メールアドレス未入力は Zod エラー', async () => {
+  it('TC-AUTH-004a: メールアドレス未入力 → 400', async () => {
     const res = await POST(makeRequest({ email: '', password: 'password' }));
     const body = await res.json();
 
@@ -61,7 +61,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'email')).toBe(true);
   });
 
-  it('400: メールアドレス形式不正は Zod エラー', async () => {
+  it('TC-AUTH-004b: メールアドレス形式不正 → 400', async () => {
     const res = await POST(makeRequest({ email: 'not-an-email', password: 'password' }));
     const body = await res.json();
 
@@ -69,7 +69,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'email')).toBe(true);
   });
 
-  it('400: パスワード未入力は Zod エラー', async () => {
+  it('TC-AUTH-004c: パスワード未入力 → 400', async () => {
     const res = await POST(makeRequest({ email: 'yamada@example.com', password: '' }));
     const body = await res.json();
 
@@ -77,17 +77,30 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'password')).toBe(true);
   });
 
-  it('400: リクエストボディなしは Zod エラー', async () => {
+  it('TC-AUTH-004d: リクエストボディなし → 400', async () => {
     const res = await POST(makeRequest({}));
 
     expect(res.status).toBe(400);
   });
 
-  it('401: 認証失敗時は 401 を返す', async () => {
+  it('TC-AUTH-002: パスワード誤り → 401', async () => {
     const { AuthError } = await import('@/lib/auth');
     mockLogin.mockRejectedValue(new AuthError('メールアドレスまたはパスワードが正しくありません'));
 
     const res = await POST(makeRequest({ email: 'yamada@example.com', password: 'wrong' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body.message).toBe('メールアドレスまたはパスワードが正しくありません');
+  });
+
+  it('TC-AUTH-003: 未登録メール → 401', async () => {
+    const { AuthError } = await import('@/lib/auth');
+    mockLogin.mockRejectedValue(new AuthError('メールアドレスまたはパスワードが正しくありません'));
+
+    const res = await POST(
+      makeRequest({ email: 'notregistered@example.com', password: 'password' })
+    );
     const body = await res.json();
 
     expect(res.status).toBe(401);

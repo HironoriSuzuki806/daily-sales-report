@@ -16,7 +16,14 @@ export const ACCESS_TOKEN_COOKIE = 'access_token';
 /** Cookie options shared between set and delete operations. */
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  // In Next.js standalone builds the server always runs with NODE_ENV=production,
+  // even in CI over plain HTTP. NEXT_PUBLIC_APP_URL is baked into the bundle at
+  // build time, so it reliably reflects whether the app was built for HTTPS.
+  // Falling back to NODE_ENV=production preserves the original behaviour when
+  // NEXT_PUBLIC_APP_URL is not set.
+  secure: process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')
+    : process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
   path: '/',
   maxAge: parseInt(process.env.JWT_EXPIRES_IN ?? '3600', 10),
