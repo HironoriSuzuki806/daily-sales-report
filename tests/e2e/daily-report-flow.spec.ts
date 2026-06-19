@@ -5,6 +5,11 @@
  * テストユーザー:
  *   SALES  : sales_a@example.com / password
  *   MANAGER: mgr_a@example.com  / password
+ *
+ * ローカル再実行時の注意:
+ *   Step 3 は報告日 2026-01-15 を固定しているため、永続DBに同日の日報が
+ *   残っている場合は 409 エラーになる。再実行前に該当レコードを削除するか
+ *   DB をリセットすること。
  */
 import { test, expect, type Page } from '@playwright/test';
 
@@ -16,12 +21,6 @@ async function login(page: Page, email: string, password = 'password') {
   await page.getByLabel('パスワード').fill(password);
   await page.getByRole('button', { name: 'ログイン' }).click();
   await expect(page).toHaveURL(/\/home/);
-}
-
-async function logout(page: Page) {
-  // ヘッダのログアウトボタンをクリック
-  await page.getByRole('button', { name: 'ログアウト' }).click();
-  await expect(page).toHaveURL(/\/login/);
 }
 
 // ─── Test ─────────────────────────────────────────────────────────────────────
@@ -96,7 +95,7 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 5: SCR-103 でコメントが0件であることを確認する', async ({ page }) => {
-    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
+    test.skip(!reportUrl, 'Step 4 が未完了のためスキップ');
     await login(page, 'sales_a@example.com');
     await page.goto(reportUrl);
 
@@ -106,7 +105,7 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 6: MANAGERユーザーでSCR-103 を開きコメントを投稿する', async ({ page }) => {
-    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
+    test.skip(!reportUrl, 'Step 4 が未完了のためスキップ');
     await login(page, 'mgr_a@example.com');
     await page.goto(reportUrl);
 
@@ -124,7 +123,7 @@ test.describe('日報作成→提出→コメント 業務フロー', () => {
   });
 
   test('Step 7: SALESユーザーで SCR-103 を確認 → コメントが表示される', async ({ page }) => {
-    if (!reportUrl) throw new Error('Step 4 で reportUrl が設定されていません');
+    test.skip(!reportUrl, 'Step 4 が未完了のためスキップ');
     await login(page, 'sales_a@example.com');
     await page.goto(reportUrl);
 

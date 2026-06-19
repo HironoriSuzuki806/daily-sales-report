@@ -52,7 +52,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(mockSetSessionCookie).toHaveBeenCalledWith('jwt-token');
   });
 
-  it('TC-AUTH-004: メールアドレス未入力 → 400', async () => {
+  it('TC-AUTH-004a: メールアドレス未入力 → 400', async () => {
     const res = await POST(makeRequest({ email: '', password: 'password' }));
     const body = await res.json();
 
@@ -61,7 +61,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'email')).toBe(true);
   });
 
-  it('TC-AUTH-004: メールアドレス形式不正 → 400', async () => {
+  it('TC-AUTH-004b: メールアドレス形式不正 → 400', async () => {
     const res = await POST(makeRequest({ email: 'not-an-email', password: 'password' }));
     const body = await res.json();
 
@@ -69,7 +69,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'email')).toBe(true);
   });
 
-  it('TC-AUTH-004: パスワード未入力 → 400', async () => {
+  it('TC-AUTH-004c: パスワード未入力 → 400', async () => {
     const res = await POST(makeRequest({ email: 'yamada@example.com', password: '' }));
     const body = await res.json();
 
@@ -77,7 +77,7 @@ describe('POST /api/v1/auth/login', () => {
     expect(body.fieldErrors.some((e: { field: string }) => e.field === 'password')).toBe(true);
   });
 
-  it('TC-AUTH-004: リクエストボディなし → 400', async () => {
+  it('TC-AUTH-004d: リクエストボディなし → 400', async () => {
     const res = await POST(makeRequest({}));
 
     expect(res.status).toBe(400);
