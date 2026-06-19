@@ -7,7 +7,8 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
-  retries: process.env.CI ? 1 : 0,
+  // Serial tests share DB state; retries would cause 409 on Step 3 duplicate dates.
+  retries: 0,
   workers: 1,
   reporter: process.env.CI
     ? [['github'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
@@ -19,7 +20,7 @@ export default defineConfig({
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
 
